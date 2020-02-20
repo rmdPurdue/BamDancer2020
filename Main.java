@@ -80,7 +80,7 @@ public class Main extends Application implements PropertyChangeListener {
            Start listening for OSC messages here.
          */
 
-        startListeningOSC();
+        startListeningOSC();  //TODO this call already starts a reciever at port 8001, so then when we create an incListener in the Model, it finds taht the port is already occupied
 
         /*
            Begin start and stop services which will be used to start, stop, and pause the model
@@ -98,7 +98,9 @@ public class Main extends Application implements PropertyChangeListener {
         service.messageProperty().addListener((ObservableValue<? extends String> observableValue, String oldValue, String newValue) -> messageWrapper.runStatus.set(newValue));
 
         stopService.messageProperty().addListener((ObservableValue<? extends String> observableValue, String oldValue, String newValue) -> messageWrapper.runStatus.set(newValue));
-        service.start(); //TODO NEED to have a STOP Somewhere too! Also, if you put it here, it will run for all screens
+        //service.start(); //TODO NEED to have a STOP Somewhere too! Also, if you put it here, it will run for all screens
+        //TODO if you run the line above, it will crash due to this.reciever getting set to nullptr in incListener when the model tries to instantiate incoming message queue
+        //TODO so need to check first if it is getting a valid port, and if not, why is it getting set to null??
         service.setOnSucceeded(event -> System.out.println("Succeeded"));  //TODO this will never print b/c we never did service.start
 
         // Add close application handler to kill all threads
@@ -173,7 +175,7 @@ public class Main extends Application implements PropertyChangeListener {
         });
     }
 
-    private void startListeningOSC() throws SocketException {
+    private void startListeningOSC() throws SocketException {  //TODO tell RIch about the problem!!
         // Create an OSC receiver object on port 8001
         OSCPortIn receiver = new OSCPortIn(8001);
 
