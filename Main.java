@@ -82,10 +82,14 @@ public class Main extends Application implements PropertyChangeListener {
 
         startListeningOSC();
 
+        /*
+           Begin start and stop services which will be used to start, stop, and pause the model
+           when necessary.
+         */
         service = new ProcessingService();
         stopService = new StopService();
 
-        BooleanBinding serviceRunning = service.runningProperty().or(stopService.runningProperty());
+        BooleanBinding serviceRunning = service.runningProperty().or(stopService.runningProperty());  //TODO never used
         messageWrapper = new MessageWrapper("Not Started.", "Not Connected.", false);
         //view.messagesLabel.textProperty().bind(messageWrapper.runStatusProperty());
         //view.ipConnectedLabel.textProperty().bind(service.valueProperty());
@@ -94,8 +98,8 @@ public class Main extends Application implements PropertyChangeListener {
         service.messageProperty().addListener((ObservableValue<? extends String> observableValue, String oldValue, String newValue) -> messageWrapper.runStatus.set(newValue));
 
         stopService.messageProperty().addListener((ObservableValue<? extends String> observableValue, String oldValue, String newValue) -> messageWrapper.runStatus.set(newValue));
-
-        service.setOnSucceeded(event -> System.out.println("Succeeded"));
+        service.start(); //TODO NEED to have a STOP Somewhere too! Also, if you put it here, it will run for all screens
+        service.setOnSucceeded(event -> System.out.println("Succeeded"));  //TODO this will never print b/c we never did service.start
 
         // Add close application handler to kill all threads
     }
@@ -279,6 +283,12 @@ public class Main extends Application implements PropertyChangeListener {
 
     }
 
+    /**
+     * This class is created to extend javafx.concurrent.Service to provide a
+     * thread for the model to run on. This CANNOT fully stop the model! It will
+     * only pause it! Stop the model using StopService.
+     */
+
     private class ProcessingService extends Service<String> {
         @Override
         protected void succeeded() {
@@ -318,6 +328,12 @@ public class Main extends Application implements PropertyChangeListener {
 
     }
 
+    /**
+     * This class is used to stop the model completely when necessary.
+     * Note that when it "succeeds" the model is cancelled, and when
+     * it is "cancelled" the model is set back to run.
+     */
+
     public class StopService extends Service<String> {
         @Override
         protected void succeeded() {
@@ -346,6 +362,11 @@ public class Main extends Application implements PropertyChangeListener {
             };
         }
     }
+
+    /**
+     * This class keeps track of the state of the task for either the ProcessingService
+     * or the StopService (will have these two instances). Along with other info.
+     */
 
     private class MessageWrapper {
         StringProperty runStatus = new SimpleStringProperty();
