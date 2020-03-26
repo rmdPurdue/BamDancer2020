@@ -30,6 +30,8 @@ import java.net.SocketException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static util.PortNumbers.OSC_FIRMWARE_PORT;
+
 public class Main extends Application implements PropertyChangeListener {
 
     private Model model;
@@ -41,7 +43,8 @@ public class Main extends Application implements PropertyChangeListener {
     private CountdownTimer countdownTimer;
     private ProcessingService service;
     private StopService stopService;
-    private MessageWrapper messageWrapper;
+    private MessageWrapper serviceMessageWrapper;
+    private MessageWrapper stopMessageWrapper;
 
     @Override
     public void start(Stage primaryStage) throws Exception{
@@ -80,28 +83,25 @@ public class Main extends Application implements PropertyChangeListener {
            Start listening for OSC messages here.
          */
 
-        startListeningOSC();  //TODO this call already starts a reciever at port 8001, so then when we create an incListener in the Model, it finds taht the port is already occupied
+        startListeningOSC();
 
         /*
            Begin start and stop services which will be used to start, stop, and pause the model
            when necessary.
          */
+
         service = new ProcessingService();
         stopService = new StopService();
 
-        BooleanBinding serviceRunning = service.runningProperty().or(stopService.runningProperty());  //TODO never used
-        messageWrapper = new MessageWrapper("Not Started.", "Not Connected.", false);
-        //view.messagesLabel.textProperty().bind(messageWrapper.runStatusProperty());
-        //view.ipConnectedLabel.textProperty().bind(service.valueProperty());
-        //view.cancelButton.disableProperty().bind(messageWrapper.runningProperty().not().or(serviceRunning));
+        //serviceMessageWrapper = new MessageWrapper("Not Started.", "Not Connected.", false);
+        serviceMessageWrapper = new MessageWrapper("Not Started.", false);
+        //stopMessageWrapper = new MessageWrapper("Not Started.", "Not Connected.", false);
+        stopMessageWrapper = new MessageWrapper("Not Started.", false);
 
-        service.messageProperty().addListener((ObservableValue<? extends String> observableValue, String oldValue, String newValue) -> messageWrapper.runStatus.set(newValue));
-
-        stopService.messageProperty().addListener((ObservableValue<? extends String> observableValue, String oldValue, String newValue) -> messageWrapper.runStatus.set(newValue));
-        //service.start(); //TODO NEED to have a STOP Somewhere too! Also, if you put it here, it will run for all screens
-        //TODO if you run the line above, it will crash due to this.reciever getting set to nullptr in incListener when the model tries to instantiate incoming message queue
-        //TODO so need to check first if it is getting a valid port, and if not, why is it getting set to null??
-        service.setOnSucceeded(event -> System.out.println("Succeeded"));  //TODO this will never print b/c we never did service.start
+        service.messageProperty().addListener((ObservableValue<? extends String> observableValue, String oldValue, String newValue) -> serviceMessageWrapper.runStatus.set(newValue));
+        stopService.messageProperty().addListener((ObservableValue<? extends String> observableValue, String oldValue, String newValue) -> stopMessageWrapper.runStatus.set(newValue));
+        service.start();
+        service.setOnSucceeded(event -> System.out.println("Model was started successfully"));
 
         // Add close application handler to kill all threads
     }
@@ -138,16 +138,15 @@ public class Main extends Application implements PropertyChangeListener {
         deviceSetupController.getProgressBar().progressProperty().bind(deviceDiscoveryQuery.getPercentTimeElapsed().divide(10));
 
         /*
-            Connect playback go button to model.
+            When the go button of the Playback screen is pressed, the model will start.
          */
-
         playbackController.goButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
                 if (playbackController.cueListTableView.getSelectionModel().getSelectedItems().size() != 0) {
                     if (model.resetLevels()) {
                         System.out.println("Right before goCue"); //TODO RM
-                        model.goCue(new Cue(playbackController.cueListTableView.getSelectionModel().getSelectedItem())); //TODO For focused cue, goes & updates the output mapping to reflect any changes
+                        model.goCue(new Cue(playbackController.cueListTableView.getSelectionModel().getSelectedItem()));
                     }
                     System.out.println("Sending Cue.");
                     if (playbackController.cueListTableView.getSelectionModel().getTableView().getItems().size() > playbackController.cueListTableView.getSelectionModel().getSelectedIndex() + 1) {  //TODO If there is another cue below the current, focus on it
@@ -160,24 +159,21 @@ public class Main extends Application implements PropertyChangeListener {
         });
 
         /*
-            Connect stop button to model
+            When stop button of Playback screen is pressed, the model will stop.
          */
-        //TODO written by hannah; not super sure if it works or not....
+//TODO error stopping model (kinda??) Says "Can only start a Service in the READY state; was in state SUCCEEDED
         playbackController.stopButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                //try {
-                    model.stopDisplay();  //TODO This function will stop the listener and therefore pause the playback controller's display
-                //} catch (CloneNotSupportedException e) { //TODO not sure if this is the right exception...
-                  //  e.printStackTrace();
-                //}
+                stopService.start();
+                stopService.setOnSucceeded(e -> System.out.println("Model was stopped successfully."));
             }
         });
     }
 
-    private void startListeningOSC() throws SocketException {  //TODO tell RIch about the problem!!
-        // Create an OSC receiver object on port 8001
-        OSCPortIn receiver = new OSCPortIn(8001);
+    private void startListeningOSC() throws SocketException {
+        // Create an OSC receiver object on port for firmware update
+        OSCPortIn receiver = new OSCPortIn(OSC_FIRMWARE_PORT.getValue());
 
         // Create an OSC listener, connect to model method for parsing the message
         OSCListener listener = (time, message) -> {
@@ -294,20 +290,20 @@ public class Main extends Application implements PropertyChangeListener {
     private class ProcessingService extends Service<String> {
         @Override
         protected void succeeded() {
-            messageWrapper.setRunStatus("Running.");
-            messageWrapper.setRunningProperty(true);
+            serviceMessageWrapper.setRunStatus("Running.");
+            serviceMessageWrapper.setRunningProperty(true);
         }
 
         @Override
         protected void failed() {
-            messageWrapper.setRunStatus("Could not start.");
-            messageWrapper.setRunningProperty(false);
+            serviceMessageWrapper.setRunStatus("Could not start.");
+            serviceMessageWrapper.setRunningProperty(false);
         }
 
         @Override
         protected void cancelled() {
-            messageWrapper.setRunStatus("Cancelled");
-            messageWrapper.setRunningProperty(false);
+            serviceMessageWrapper.setRunStatus("Cancelled");
+            serviceMessageWrapper.setRunningProperty(false);
         }
 
         @Override
@@ -316,13 +312,12 @@ public class Main extends Application implements PropertyChangeListener {
                 @Override
                 protected String call() throws Exception {
                     if(!model.running) {
-                        //System.out.println("Model is running, about to call model.start"); //TODO RM
+                        System.out.println("Model is running, about to call model.start"); //TODO RM
                         model.start();
                     } else {
                         model.resume();
                         Thread.sleep(1000);
                     }
-                    //return model.ipStatus;
                     return null;
                 }
             };
@@ -339,14 +334,14 @@ public class Main extends Application implements PropertyChangeListener {
     public class StopService extends Service<String> {
         @Override
         protected void succeeded() {
-            messageWrapper.setRunStatus("Stopped.");
-            messageWrapper.setRunningProperty(false);
+            stopMessageWrapper.setRunStatus("Model Stopped");
+            stopMessageWrapper.setRunningProperty(false);
         }
 
         @Override
         protected void cancelled() {
-            messageWrapper.setRunStatus("Stopping cancelled.");
-            messageWrapper.setRunningProperty(true);
+            stopMessageWrapper.setRunStatus("Stopping Model Cancelled");
+            stopMessageWrapper.setRunningProperty(true);
         }
 
         @Override
@@ -354,11 +349,8 @@ public class Main extends Application implements PropertyChangeListener {
             return new Task<String>() {
                 @Override
                 protected String call() throws Exception {
-                    //updateMessage("Stopping...");
                     model.stop();
                     Thread.sleep(1000);
-                    //updateMessage("Stopped.");
-                    //return model.ipStatus;
                     return null;
                 }
             };
@@ -369,15 +361,16 @@ public class Main extends Application implements PropertyChangeListener {
      * This class keeps track of the state of the task for either the ProcessingService
      * or the StopService (will have these two instances). Along with other info.
      */
-
+//TODO need to ask Rich if we need the ipStatus stuff or not; I think he might not be sure either though...
     private class MessageWrapper {
         StringProperty runStatus = new SimpleStringProperty();
-        StringProperty ipStatus = new SimpleStringProperty();
+        //StringProperty ipStatus = new SimpleStringProperty();
         BooleanProperty runningProperty = new SimpleBooleanProperty(Boolean.FALSE);
 
-        public MessageWrapper(String runStatusString, String ipStatusString, Boolean running) {
+        //public MessageWrapper(String runStatusString, String ipStatusString, Boolean running) {
+        public MessageWrapper(String runStatusString, Boolean running) {
             this.runStatus.setValue(runStatusString);
-            this.ipStatus.setValue(ipStatusString);
+            //this.ipStatus.setValue(ipStatusString);
             this.runningProperty.setValue(running);
         }
 
@@ -393,17 +386,17 @@ public class Main extends Application implements PropertyChangeListener {
             this.runStatus.set(runStatus);
         }
 
-        public String getIpStatus() {
-            return ipStatus.get();
-        }
+        //public String getIpStatus() {
+          //  return ipStatus.get();
+       // }
 
-        public StringProperty ipStatusProperty() {
-            return ipStatus;
-        }
+        //public StringProperty ipStatusProperty() {
+          //  return ipStatus;
+        //}
 
-        public void setIpStatus(String ipStatus) {
-            this.ipStatus.set(ipStatus);
-        }
+        //public void setIpStatus(String ipStatus) {
+          //  this.ipStatus.set(ipStatus);
+        //}
 
         public boolean isRunningProperty() {
             return runningProperty.get();

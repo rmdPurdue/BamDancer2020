@@ -10,7 +10,8 @@ public enum PortNumbers {
     UDP_SEND_PORT(9001),
     UDP_RECEIVE_PORT(8000),
     OSC_SEND_PORT(9000),
-    OSC_RECEIVE_PORT(8001);
+    OSC_RECEIVE_PORT(8001),
+    OSC_FIRMWARE_PORT(8002);
 
     private int port;
 

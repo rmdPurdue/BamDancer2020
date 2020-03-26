@@ -96,7 +96,7 @@ public class CueListController implements Initializable {
             // TODO: check if this works for decimal cue numbers.
         });
 
-        addMappingButton.setOnAction(e -> addMappingDialog(null));
+        addMappingButton.setOnAction(e -> addMappingDialog(null)); //TODO null ptr exception (intentional??)
 
         removeMappingButton.setOnAction(e -> {
             String header = "Confirm Mapping Deletion";
@@ -337,7 +337,7 @@ public class CueListController implements Initializable {
             algorithms.getSelectionModel().select(mapping.getOutputAddress().getAlgorithm().getValue());
         } else {
             devicesToMap.getSelectionModel().selectFirst();
-            deviceInputs.setItems(devicesToMap.getSelectionModel().getSelectedItem().getAnalogInputs());
+            deviceInputs.setItems(devicesToMap.getSelectionModel().getSelectedItem().getAnalogInputs()); //TODO null ptr exception
             deviceInputs.getSelectionModel().selectFirst();
             destinationDevices.getSelectionModel().selectFirst();
             algorithms.getSelectionModel().selectFirst();

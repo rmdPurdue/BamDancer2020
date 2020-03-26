@@ -134,7 +134,13 @@ public class Model implements ThreadListener {
         // Wait a beat, then add Model as a listener for the incoming message thread
         Thread.sleep(500);
         incoming.addListener(this);
+        stop(); //Stopping incListener class so it doesn't waste resources.
     }
+
+    /**
+     * This method pauses the incoming message thread. Used by main to trigger model
+     * stop when Stop button is pressed. Also used for resetting levels in Model.
+     */
 
     public void stop() {
         //Stop the incoming message thread. Update status variables.
@@ -153,7 +159,7 @@ public class Model implements ThreadListener {
     @Override
     public void incomingDataUpdated() { //TODO this is what gets called whenever we have a new OSC message
 
-        System.out.println("Got a message."); //TODO this is never getting called, so display is never getting updated...
+        System.out.println("Got a message.");
         // Create a new OSC Message
 
         OSCMessage message = new OSCMessage();
@@ -257,28 +263,19 @@ public class Model implements ThreadListener {
                     mapping.getInputDisplay());  //TODO note this changed so it sends an input display now...
         }
         outgoingQueue.clear();
-        System.out.println("BEFORE CREATING LISTENER");  //TODO RM
-        incoming.addListener(this); //TODO does not appear to be working!!
-        System.out.println("AFTER CREATING LISTENER");  //TODO RM
+        resume();
         this.cue = cue;
     }
 
-    /**
-     * Used in main to coordinate the action of stop button in the playback controller.
-     * Ensures that we are not listening to dancer devices, and that the outgoingQueue is
-     * empty so the lights will freeze in their current states.
+    /*
+        Stops and clears info from current incoming queue to set up for a new one.
+        Then, appears to put a bunch of mapping info into the outgoingQueue?
      */
-    public void stopDisplay() {
-        if (incoming.size() > 0) incoming.removeListener(this);
-        incomingQueue.clear();
-    }
-
     public boolean resetLevels() {
         System.out.println("Resetting Levels.");
         if(this.cue!=null) {
             System.out.println("Cue not null.");
-            if(incoming.size() > 0 ) incoming.removeListener(this);
-            System.out.println("Listener removed.");
+            if(incoming.size() > 0 ) stop();
             incomingQueue.clear();
             System.out.println("Incoming queue cleared.");
             outgoingQueue.clear();

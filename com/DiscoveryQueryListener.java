@@ -19,7 +19,7 @@ public class DiscoveryQueryListener implements Runnable {
     private DatagramSocket socket = null;
     private int receivePort;
 
-    public DiscoveryQueryListener() throws SocketException {
+    public DiscoveryQueryListener() {
         // Set the UDP listening port
         receivePort = UDP_RECEIVE_PORT.getValue();
     }
@@ -38,36 +38,41 @@ public class DiscoveryQueryListener implements Runnable {
     }
 
     public void run() {
+        System.out.println("RUNNING??"); //TODO RM
         running.set(true);
 
         // Open a receiver socket
         try {
-            socket = new DatagramSocket(receivePort);
+            socket = new DatagramSocket(receivePort); //TODO says cannot bind b/c address already in use.
+            //FIrst time running this is successful
         } catch (SocketException e) {
             e.printStackTrace();
         }
 
         while(running.get()) {
+            System.out.println("GETTING IN WHILE LOOP");
             try {
 
                 // Create an empty byte array to put incoming messages into
                 byte[] buf = new byte[256];
-
+                System.out.println("Created buffer"); //TODO RM
                 // Create a new UDP datagram packet
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
-
+System.out.println("Created datagram packet"); //TODO RM
                 // When we receive new data in our receiver socket, put it in our packet
-                socket.receive(packet);
+                socket.receive(packet);  //TODO this must be doing weird stuff b/c nothing after this gets to happen...
+                //I debugged and it just hangs in debug mode too; I suppose that it is waiting for a packet and
+                //just never gets anything somehow??
 
-                //System.out.println("Message received.");
+                System.out.println("Message received.");
 
                 // Get the IP address our received packet was sent from
                 InetAddress address = packet.getAddress();
-                //System.out.println("IP Address of remote sender: " + address.toString());
+                System.out.println("IP Address of remote sender: " + address.toString());
 
                 // Get the port our received packet was addressed to
                 int port = packet.getPort();
-                //System.out.println("Port of remote sender: " + port);
+                System.out.println("Port of remote sender: " + port);
 
                 // Get the bytes that comprise the message in our received packet
                 buf = packet.getData();
@@ -103,16 +108,16 @@ public class DiscoveryQueryListener implements Runnable {
                 temp.setDeviceName(deviceName);
                 temp.setIpAddress(address);
                 if(remoteDevices.contains(temp)) {
-                    //System.out.println("We know this device already.");
-                    //System.out.println("-----------------------------");
-                    //System.out.println();
+                    System.out.println("We know this device already.");
+                    System.out.println("-----------------------------");
+                    System.out.println();
                 } else {
-                    //System.out.println("We've not seen this device.");
+                    System.out.println("We've not seen this device.");
 
                     // Add this new device to our list
                     remoteDevices.add(temp);
-                    //System.out.println("Device added. Device list size: " + remoteDevices.size());
-                    //System.out.println("This device MAC address: " + remoteDevices.get(remoteDevices.size()-1).getMacAddress());
+                    System.out.println("Device added. Device list size: " + remoteDevices.size());
+                    System.out.println("This device MAC address: " + remoteDevices.get(remoteDevices.size()-1).getMacAddress());
 
                     // Create an acknowledgement message
                     String message = "Found you!";
@@ -130,12 +135,12 @@ public class DiscoveryQueryListener implements Runnable {
                     //System.out.println();
                 }
 
-            } catch (IOException e) {
+            } catch (IOException e) { //Not having an exception (tried blanket exception and got nothing )
                 e.printStackTrace();
             }
         }
-
+System.out.println("Closing socket"); //TODO RM
         // Close UDP socket
-        socket.close();
+        socket.close(); //TODO Well this probs solves the binding issue; somehow this line never executes.
     }
 }

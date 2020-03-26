@@ -57,12 +57,12 @@ public class incListener implements Runnable {
     public int size() {
         return listeners.size();
     }
-  //TODO see here!!!
+
     @Override
     public void run() {
         System.out.println("GETTING TO RUN INCLIST?"); //TODO RM
         try {
-            this.receiver = new OSCPortIn(OSC_RECEIVE_PORT.getValue());  //TODO this is the listening port; so we want all messages sent to port 8000
+            this.receiver = new OSCPortIn(OSC_RECEIVE_PORT.getValue());
         } catch (Exception e) {
             e.printStackTrace();
         }
