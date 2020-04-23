@@ -78,7 +78,7 @@ public class Model implements ThreadListener {
     }
 
     public void start() throws InterruptedException, UnknownHostException, SocketException {
-        //System.out.println("In Model's start method!");  //TODO RM
+
         // Set main thread status properties
         running = true;
         paused = false;
