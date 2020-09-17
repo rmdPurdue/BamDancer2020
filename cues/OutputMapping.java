@@ -19,7 +19,7 @@ public class OutputMapping {
 
     OutputMapping() {
         id = UUID.randomUUID();
-        display = new InputDisplay(); //TODO should I change the default constructor for inputdisplay??
+        display = new InputDisplay();
     }
 
     OutputMapping(OutputMapping source) {

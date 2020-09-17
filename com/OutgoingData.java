@@ -118,7 +118,6 @@ public class OutgoingData {
                 this.data = new OneByteLevels().calculate(rawData);
                 break;
         }
-//        System.out.println(this.data);
     }
 
     public InetAddress getIpAddress () {

@@ -92,7 +92,6 @@ public class Model implements ThreadListener {
         outgoingSender.setDaemon(true);
 
         // Start message threads
-        System.out.println("Starting incoming & outgoing readers!"); //TODO RM
         incomingReader.start();
         outgoingSender.start();
 
@@ -159,7 +158,7 @@ public class Model implements ThreadListener {
     @Override
     public void incomingDataUpdated() { //TODO this is what gets called whenever we have a new OSC message
 
-        System.out.println("Got a message.");
+        System.out.println("In IncomingDataUpdated (Model).");
         // Create a new OSC Message
 
         OSCMessage message = new OSCMessage();
@@ -185,6 +184,7 @@ public class Model implements ThreadListener {
                     // Create an instance of OutgoingData based on the mapping information
                     // for destination IP, destination port, OSC address, algorithm, and data.
                     // Then, add the outgoing data to the outgoing message queue.
+                    //TODO for some reason the message gets /Testing instead of /Testingdevice so it gets it incorrect
                     if (finalMessage.getAddress().equals("/hub/" + mapping.getDeviceName())) {  //TODO if this osc message is intended for us to use (check if it is the correct device
                         this.data = (Integer) finalMessage.getArguments().get(mapping.getInput()); //TODO from the current OutputMapping, get the input number and retrieve the data corresponding to it (/hub/device/ # # # # # #) get the # correspondingto input number
                         OutgoingData out = new OutgoingData(mapping.getOutputAddress().getIPaddress(),
@@ -192,7 +192,7 @@ public class Model implements ThreadListener {
                                 mapping.getOutputAddress().getUrl(),
                                 mapping.getOutputAddress().getAlgorithm(),
                                 data);
-                        mapping.updateDisplay(out);
+                        mapping.updateDisplay(out);  //TODO for some strange reason, this is not occurring....
                         System.out.println("Updating mapping!!!");  //TODO RM
                         try {
                             this.outgoingQueue.put(out);
@@ -260,7 +260,7 @@ public class Model implements ThreadListener {
         for (OutputMapping mapping : cue.getOutputMappings()) {
             System.out.println("Sending property change for updating mapping"); //TODO RM
             modelPropertyChangeSupport.firePropertyChange("update playback view", 0,
-                    mapping.getInputDisplay());  //TODO note this changed so it sends an input display now...
+                    mapping.getInputDisplay());
         }
         outgoingQueue.clear();
         resume();

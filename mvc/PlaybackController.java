@@ -106,7 +106,6 @@ public class PlaybackController implements Initializable, PropertyChangeListener
 
         cueListTableView.setPlaceholder(new Label("No cues saved."));
         cueListTableView.getSortOrder().add(cueListNumberColumn);
-        //TODO HANNAH if you need to initialize the flowpane in some way, that is done here!!
     }
 
     private boolean isCueNumberValid(String newText) {
@@ -138,10 +137,12 @@ public class PlaybackController implements Initializable, PropertyChangeListener
     }
 
     /**
+     * @author Hannah Eckert
+     *
      * Property change handler for adding an InputDisplay to the FlowPane for the
      * playback controller, and for clearing the FlowPane for the running of a new
      * cue.
-     */ //BY Hannah
+     */
 
     @Override
     public void propertyChange(PropertyChangeEvent e) {
@@ -153,7 +154,7 @@ public class PlaybackController implements Initializable, PropertyChangeListener
             inputDisplayPane.getChildren().add(updatedInfo.getDisplay());
         }
         else if (property.equals("clear playback pane")) {
-            inputDisplayPane.getChildren().clear(); //TODO not sure if this should be remove all or clear...
+            inputDisplayPane.getChildren().clear();
         }
     }
 }

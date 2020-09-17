@@ -336,7 +336,7 @@ public class Main extends Application implements PropertyChangeListener {
         protected void succeeded() {
             stopMessageWrapper.setRunStatus("Model Stopped");
             stopMessageWrapper.setRunningProperty(false);
-            reset(); //TODO  check
+            reset();
         }
 
         @Override
