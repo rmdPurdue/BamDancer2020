@@ -44,6 +44,7 @@ public class DeviceDiscoveryQuery implements Runnable {
         Thread.currentThread().interrupt();
         percentTimeElapsed.set(0);
         discoveryCompletePropertyChange.firePropertyChange("scanComplete", false, true);
+        //TODO Hannah, need to ensure that any open sockets are properly closed!!!
     }
 
     @Override
@@ -92,7 +93,8 @@ public class DeviceDiscoveryQuery implements Runnable {
             // Close our UDP socket
             socket.close();
 
-            // Wait 250 millis before doing it again
+            // Wait 250 millis before doing it againRedF1sh
+            
             try {
                 Thread.sleep(250);
             } catch (InterruptedException e) {
