@@ -45,7 +45,13 @@ public class DeviceDiscoveryQuery implements Runnable {
         percentTimeElapsed.set(0);
         discoveryCompletePropertyChange.firePropertyChange("scanComplete", false, true);
         socket.disconnect();
-        //TODO Hannah, need to ensure that any open sockets are properly closed!!!
+    }
+
+    public void cancelDiscovery() {
+        discoveryComplete = true;
+        Thread.currentThread().interrupt();
+        percentTimeElapsed.set(0);
+        discoveryCompletePropertyChange.firePropertyChange("scanCancelled", false, true);
     }
 
     @Override

@@ -206,22 +206,31 @@ public class Main extends Application implements PropertyChangeListener {
     }
 
     private void stopNetworkDiscoveryScan() {
+        //Specifically, this function cancels a network discovery scan.
+
         // Stop the discovery scan thread
-        deviceDiscoveryQuery.stopDiscovery();
+        deviceDiscoveryQuery.cancelDiscovery();
 
         // Stop the discovery listener thread
         discoveryQueryListener.stopDiscoveryListening();
     }
 
-    private void cleanUpAfterNetworkScan() throws IOException {
+    private void cleanUpAfterNetworkScan(Boolean scanCompleted) throws IOException {
+        //scanCompleted is false when a scan is cancelled prematurely
 
-        System.out.println("Discovery Query timeout received.");
+        System.out.println("Discovery Query timeout received OR Cancel button pressed.");
 
         // Stop listener for discovery responses
-        discoveryQueryListener.stopDiscoveryListening();
+        //discoveryQueryListener.stopDiscoveryListening(); Unnecessary b/c stopDiscoveryListening has already been called at this point.
 
         // Update model with found devices
         model.setSenderDevices(discoveryQueryListener.getDiscoveredDevices());
+
+        //If no devices found, display error to user
+        if (scanCompleted && discoveryQueryListener.getDiscoveredDevices().isEmpty()) {
+            /* Scan failed; warn user of common failure causes. */
+            model.deviceScanFailed();
+        }
 
         // refresh main display
         deviceSetupController.updateDeviceTable();
@@ -268,7 +277,13 @@ public class Main extends Application implements PropertyChangeListener {
         if(property.equals("stopScanning")) stopNetworkDiscoveryScan();
 
         if(property.equals("scanComplete")) try {
-            cleanUpAfterNetworkScan();
+            cleanUpAfterNetworkScan(true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        if (property.equals("scanCancelled")) try {
+            cleanUpAfterNetworkScan(false);
         } catch (IOException e) {
             e.printStackTrace();
         }

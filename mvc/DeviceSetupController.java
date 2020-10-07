@@ -109,7 +109,7 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
 
         beginScanButton.setOnAction(event -> controllerPropertyChangeSupport.firePropertyChange("startScanning", true, false));
 
-        cancelScanButton.setOnAction(event -> controllerPropertyChangeSupport.firePropertyChange("stopScanning", false, true));
+        cancelScanButton.setOnAction(event -> controllerPropertyChangeSupport.firePropertyChange("cancelScan", false, true));
 
         addDeviceButton.setOnAction(event -> addDeviceDialog());
 
@@ -290,6 +290,11 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         if(senderDeviceList.getDevices().isEmpty() && receiverDeviceList.getDevices().isEmpty()) {
             deviceTableView.setPlaceholder(new Label("No devices found on network."));
         }
+    }
+
+    public void showNetworkScanError() {
+        /* Shows an error if a network scan has failed to identify a device */
+
     }
 
     public void setDevice(RemoteDevice device) {
@@ -541,6 +546,15 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         display.play();
     }
 
+    public void displayScanFailedAlert() {
+        Alert scanFailedAlert = new Alert(Alert.AlertType.WARNING, "Device scan failed. Some common reasons " +
+                "for a device scan failure include the device not being connected to the local network and that the " +
+                "device is connected to the local network but is unable to pair with our system. A green light on the sensor" +
+                "indicates that it has properly connected to the local network. A flashing light during the device scan " +
+                "indicates that the device has paired with our system." );
+        scanFailedAlert.show();
+    }
+
     public ProgressBar getProgressBar() {
         return scanProgress;
     }
@@ -561,6 +575,10 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             if((boolean)propertyChangeEvent.getNewValue()) {
                 updateDeviceTable();
             }
+        }
+        if(property.equals("device scan failed")) {
+            System.out.println("Reached device scan failed property location!");
+            Platform.runLater(this::displayScanFailedAlert);
         }
 
     }

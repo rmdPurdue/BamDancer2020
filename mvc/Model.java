@@ -218,6 +218,11 @@ public class Model implements ThreadListener {
         updateSenderDeviceData();
     }
 
+    public void deviceScanFailed() {
+        /* Device scan has not found any devices from DeviceDiscoveryQuery*/
+        modelPropertyChangeSupport.firePropertyChange("device scan failed", 0, 1);
+    }
+
     DeviceList getSenderDevices() { return senderDevices; }
 
     public void setReceiverDevices(ArrayList<RemoteDevice> devices) throws IOException {
@@ -309,6 +314,8 @@ public class Model implements ThreadListener {
             OSC_Sender.sendMessage(device.getIpAddress(), OSC_SEND_PORT.getValue(), SETUP.toString(), args);
         }
     }
+
+
 
     public void parseIncomingOSCMessage(OSCMessage message) throws UnknownHostException {
         if(message.matches("/device_setup")) {

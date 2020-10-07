@@ -34,7 +34,6 @@ public class DiscoveryQueryListener implements Runnable {
         discoveryListeningComplete = true;
         Thread.currentThread().interrupt();
         socket.disconnect();
-        //TODO Hannah, need to determine if there are any sockets left open and close them before returning!
     }
 
     public ArrayList<RemoteDevice> getDiscoveredDevices() {

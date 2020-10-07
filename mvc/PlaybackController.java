@@ -42,7 +42,7 @@ import static util.DialogType.DELETE_MAPPING;
  * @package mvc
  * @date 7/4/2019
  */
-public class PlaybackController implements Initializable, PropertyChangeListener { //TODO I ADDED THE PROPERTY CHANGE LISTENER PART!!!
+public class PlaybackController implements Initializable, PropertyChangeListener {
 
     @FXML public TableView<Cue> cueListTableView;
     @FXML private TableColumn<Cue, Double> cueListNumberColumn;
@@ -58,7 +58,7 @@ public class PlaybackController implements Initializable, PropertyChangeListener
     @FXML private Label cueNumberDisplayLabel;
     @FXML private Label cueDescriptionDisplayLabel;
 
-    @FXML private FlowPane inputDisplayPane;  //TODO ADDED MY HANNAH MIGHT BE BAD
+    @FXML private FlowPane inputDisplayPane;
 
     @FXML private TextField cueNumberTextField;
     @FXML private TextField cueLabelTextField;
