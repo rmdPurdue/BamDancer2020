@@ -223,6 +223,10 @@ public class Main extends Application implements PropertyChangeListener {
         // Stop listener for discovery responses
         //discoveryQueryListener.stopDiscoveryListening(); Unnecessary b/c stopDiscoveryListening has already been called at this point.
 
+        //Properly stop the deviceDiscoveryQuery and DiscoveryQueryListener threads
+        //I believe that the executor should be shut down, but I am suuuper not sure.... TODO
+
+
         // Update model with found devices
         model.setSenderDevices(discoveryQueryListener.getDiscoveredDevices());
 
@@ -231,6 +235,10 @@ public class Main extends Application implements PropertyChangeListener {
             /* Scan failed; warn user of common failure causes. */
             model.deviceScanFailed();
         }
+
+        //Re-activate Network Scan button
+
+        model.deviceScanCompleted();
 
         // refresh main display
         deviceSetupController.updateDeviceTable();

@@ -107,9 +107,14 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         // TODO: We need to add ability to update receiver port numbers.
         // TODO: We need to add the ability to manually add devices.
 
-        beginScanButton.setOnAction(event -> controllerPropertyChangeSupport.firePropertyChange("startScanning", true, false));
+        beginScanButton.setOnAction(event -> {
+            controllerPropertyChangeSupport.firePropertyChange("startScanning", true, false);
+            beginScanButton.setDisable(true);
+            cancelScanButton.setDisable(false);
+        });
 
-        cancelScanButton.setOnAction(event -> controllerPropertyChangeSupport.firePropertyChange("cancelScan", false, true));
+        cancelScanButton.setOnAction(event -> controllerPropertyChangeSupport.firePropertyChange("stopScanning", false, true));
+        cancelScanButton.setDisable(true);
 
         addDeviceButton.setOnAction(event -> addDeviceDialog());
 
@@ -579,6 +584,10 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         if(property.equals("device scan failed")) {
             System.out.println("Reached device scan failed property location!");
             Platform.runLater(this::displayScanFailedAlert);
+        }
+        if (property.equals("scanFinished")) {
+            beginScanButton.setDisable(false);
+            cancelScanButton.setDisable(true);
         }
 
     }

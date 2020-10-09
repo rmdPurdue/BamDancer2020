@@ -223,6 +223,12 @@ public class Model implements ThreadListener {
         modelPropertyChangeSupport.firePropertyChange("device scan failed", 0, 1);
     }
 
+    public void deviceScanCompleted() {
+        /* Network scan is finished and irrelevant of whether it was successful or not, we need to re
+        * activate the scan button.*/
+        modelPropertyChangeSupport.firePropertyChange("scanFinished", 0, 1);
+    }
+
     DeviceList getSenderDevices() { return senderDevices; }
 
     public void setReceiverDevices(ArrayList<RemoteDevice> devices) throws IOException {
