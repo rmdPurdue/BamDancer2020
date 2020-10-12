@@ -11,6 +11,15 @@ import java.util.*;
  */
 public class DeviceList {
 
+    public Boolean isInDeviceList(RemoteDevice deviceToCheck) {
+        for (RemoteDevice device : devices) {
+            if (device == deviceToCheck) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private ArrayList<RemoteDevice> devices = new ArrayList<>();
 
     public ObservableList<RemoteDevice> getDevices() {

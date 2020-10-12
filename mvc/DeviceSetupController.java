@@ -297,14 +297,15 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         }
     }
 
-    public void showNetworkScanError() {
-        /* Shows an error if a network scan has failed to identify a device */
-
-    }
-
     public void setDevice(RemoteDevice device) {
         // TODO: adjust this based on DeviceType
         this.device = device;
+        if (device == null) {
+            //This device is no longer in the device list
+
+            inputSettingsTableView.getItems().clear();
+            inputSettingsTableView.refresh();
+        }
         switch(device.getDeviceType()) {
             case SENDER:
                 deviceNameTextField.setText(device.getDeviceName());
@@ -342,9 +343,15 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         devices.setDevices(new ArrayList<>(senderDeviceList.getDevices()));
         devices.getDevices().addAll(new ArrayList<>(receiverDeviceList.getDevices()));
 
+        //Clears list of sender and reciever devices which are connected
+
         deviceTableView.getItems().clear();
         deviceTableView.getItems().addAll(FXCollections.observableList(devices.getDevices()));
         deviceTableView.refresh();
+
+        //Ensures that user cannot interact with non-existant device information
+
+        //TODO need function to either somehow disable table or to clear it....
     }
 
     private void addDeviceDialog() {
@@ -582,7 +589,9 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             }
         }
         if(property.equals("device scan failed")) {
-            System.out.println("Reached device scan failed property location!");
+            if (!senderDeviceList.isInDeviceList(selectedDevice)) { //TODO senderDevice(null) does what I want it to do, but somehow now the DeviceTable does not get updated properly.
+                setDevice(null);
+            }
             Platform.runLater(this::displayScanFailedAlert);
         }
         if (property.equals("scanFinished")) {
