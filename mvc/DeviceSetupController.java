@@ -305,6 +305,7 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
 
             inputSettingsTableView.getItems().clear();
             inputSettingsTableView.refresh();
+            return;
         }
         switch(device.getDeviceType()) {
             case SENDER:
@@ -589,14 +590,19 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             }
         }
         if(property.equals("device scan failed")) {
-            if (!senderDeviceList.isInDeviceList(selectedDevice)) { //TODO senderDevice(null) does what I want it to do, but somehow now the DeviceTable does not get updated properly.
-                setDevice(null);
-            }
             Platform.runLater(this::displayScanFailedAlert);
         }
         if (property.equals("scanFinished")) {
+            // Occurs after any scan, successful or not
+
             beginScanButton.setDisable(false);
             cancelScanButton.setDisable(true);
+
+            //Ensure any selected devices which are no longer in the list are not accessible.
+
+            if (!senderDeviceList.isInDeviceList(selectedDevice)) {
+                setDevice(null);
+            }
         }
 
     }
