@@ -23,6 +23,8 @@ import osc.OSCPortIn;
 import util.CountdownTimer;
 import devices.DeviceToCalibrate;
 import devices.RemoteDevice;
+import util.PropertyChanges;
+
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
@@ -69,7 +71,7 @@ public class Main extends Application implements PropertyChangeListener {
            Establish background threads for application services
          */
 
-        executor = Executors.newFixedThreadPool(5);
+        executor = Executors.newFixedThreadPool(3);
         deviceDiscoveryQuery = new DeviceDiscoveryQuery(5);
         discoveryQueryListener = new DiscoveryQueryListener();
         countdownTimer = new CountdownTimer(5);
@@ -196,8 +198,6 @@ public class Main extends Application implements PropertyChangeListener {
     }
 
     private void startNetworkDiscoveryScan() {
-        System.out.println("Got here.");
-
         // Start the discovery listener thread
         executor.submit(discoveryQueryListener);
 
@@ -216,16 +216,9 @@ public class Main extends Application implements PropertyChangeListener {
     }
 
     private void cleanUpAfterNetworkScan(Boolean scanCompleted) throws IOException {
+
         //scanCompleted is false when a scan is cancelled prematurely
-
         System.out.println("Discovery Query timeout received OR Cancel button pressed.");
-
-        // Stop listener for discovery responses
-        //discoveryQueryListener.stopDiscoveryListening(); Unnecessary b/c stopDiscoveryListening has already been called at this point.
-
-        //Properly stop the deviceDiscoveryQuery and DiscoveryQueryListener threads
-        //I believe that the executor should be shut down, but I am suuuper not sure.... TODO
-
 
         // Update model with found devices
         model.setSenderDevices(discoveryQueryListener.getDiscoveredDevices());
@@ -237,7 +230,6 @@ public class Main extends Application implements PropertyChangeListener {
         }
 
         //Re-activate Network Scan button
-
         model.deviceScanCompleted();
 
         // refresh main display
@@ -280,25 +272,25 @@ public class Main extends Application implements PropertyChangeListener {
         String property = propertyChangeEvent.getPropertyName();
         Object value = propertyChangeEvent.getNewValue();
 
-        if(property.equals("startScanning")) startNetworkDiscoveryScan();
+        if(property.equals(PropertyChanges.START_SCAN.toString())) startNetworkDiscoveryScan();
 
-        if(property.equals("stopScanning")) stopNetworkDiscoveryScan();
+        if(property.equals(PropertyChanges.STOP_SCAN.toString())) stopNetworkDiscoveryScan();
 
-        if(property.equals("scanComplete")) try {
+        if(property.equals(PropertyChanges.SCAN_COMPLETE.toString())) try {
             cleanUpAfterNetworkScan(true);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        if (property.equals("scanCancelled")) try {
+        if (property.equals(PropertyChanges.SCAN_CANCELLED.toString())) try {
             cleanUpAfterNetworkScan(false);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        if(property.equals("saveDeviceSettings")) sendSettingsToDevice((RemoteDevice) value);
+        if(property.equals(PropertyChanges.SAVE_DEVICE.toString())) sendSettingsToDevice((RemoteDevice) value);
 
-        if(property.equals("calibrate")) {
+        if(property.equals(PropertyChanges.CALIBRATE.toString())) {
             calibrate((DeviceToCalibrate)value);
         }
 

@@ -4,6 +4,7 @@ import devices.*;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.beans.property.Property;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -108,12 +109,12 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         // TODO: We need to add the ability to manually add devices.
 
         beginScanButton.setOnAction(event -> {
-            controllerPropertyChangeSupport.firePropertyChange("startScanning", true, false);
+            controllerPropertyChangeSupport.firePropertyChange(PropertyChanges.START_SCAN.toString(), true, false);
             beginScanButton.setDisable(true);
             cancelScanButton.setDisable(false);
         });
 
-        cancelScanButton.setOnAction(event -> controllerPropertyChangeSupport.firePropertyChange("stopScanning", false, true));
+        cancelScanButton.setOnAction(event -> controllerPropertyChangeSupport.firePropertyChange(PropertyChanges.STOP_SCAN.toString(), false, true));
         cancelScanButton.setDisable(true);
 
         addDeviceButton.setOnAction(event -> addDeviceDialog());
@@ -221,7 +222,7 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             device.setPortToSendTo(Integer.parseInt(portNumberTextField.getText()));
         });
 
-        saveButton.setOnAction(event -> controllerPropertyChangeSupport.firePropertyChange("saveDeviceSettings", null, device));
+        saveButton.setOnAction(event -> controllerPropertyChangeSupport.firePropertyChange(PropertyChanges.SAVE_DEVICE.toString(), null, device));
 
         inputNumberColumn.setCellValueFactory(new PropertyValueFactory<>("inputNumber"));
         minValueColumn.setCellValueFactory(new PropertyValueFactory<>("minValue"));
@@ -500,6 +501,11 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
 
     }
 
+    private void deviceSetupFieldError() {
+        /* Errors to display to the user in the event that they have provided incorrect information. */
+
+    }
+
     private void openCalibrationAlertDialog(AnalogInput input, RemoteDevice device, OSCCommand type) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Input Calibration");
@@ -522,7 +528,7 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         result.ifPresent(ButtonType -> {
             if(result.get() == javafx.scene.control.ButtonType.OK) {
                 progressAlert(5);
-                controllerPropertyChangeSupport.firePropertyChange("calibrate", null, new DeviceToCalibrate(device, input.getInputNumber(), type));
+                controllerPropertyChangeSupport.firePropertyChange(PropertyChanges.CALIBRATE.toString(), null, new DeviceToCalibrate(device, input.getInputNumber(), type));
             }
         });
     }
@@ -575,24 +581,22 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
     public void propertyChange(PropertyChangeEvent propertyChangeEvent) {
         String property = propertyChangeEvent.getPropertyName();
 
-        if(property.equals("updatedDeviceData")) {
+        if(property.equals(PropertyChanges.UPDATED_DEV_DATA.toString())) {
             updateDeviceTable();
         }
-
-        if(property.equals("updatedInputData")) {
+        if(property.equals(PropertyChanges.UPDATED_INPUT_DATA.toString())) {
             setDevice(deviceTableView.getSelectionModel().getSelectedItem());
             Platform.runLater(this::showUpdatedInputDataAlert);
         }
-
-        if(property.equals("remoteDeviceSaved")) {
+        if(property.equals(PropertyChanges.REMOTE_DEV_SAVED.toString())) {
             if((boolean)propertyChangeEvent.getNewValue()) {
                 updateDeviceTable();
             }
         }
-        if(property.equals("device scan failed")) {
+        if(property.equals(PropertyChanges.SCAN_FAILED.toString())) {
             Platform.runLater(this::displayScanFailedAlert);
         }
-        if (property.equals("scanFinished")) {
+        if (property.equals(PropertyChanges.SCAN_FINISHED.toString())) {
             // Occurs after any scan, successful or not
 
             beginScanButton.setDisable(false);
@@ -604,6 +608,12 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
                 setDevice(null);
             }
         }
+
+    }
+
+    private enum Err {
+        /* Enum for handling error messages related to formatting/validation of user-entered fields*/
+
 
     }
 }

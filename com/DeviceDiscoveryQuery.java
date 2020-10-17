@@ -2,6 +2,7 @@ package com;
 
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import util.PropertyChanges;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
@@ -43,7 +44,7 @@ public class DeviceDiscoveryQuery implements Runnable {
         discoveryComplete = true;
         Thread.currentThread().interrupt();
         percentTimeElapsed.set(0);
-        discoveryCompletePropertyChange.firePropertyChange("scanComplete", false, true);
+        discoveryCompletePropertyChange.firePropertyChange(PropertyChanges.SCAN_COMPLETE.toString(), false, true);
         socket.disconnect();
     }
 
@@ -51,7 +52,7 @@ public class DeviceDiscoveryQuery implements Runnable {
         discoveryComplete = true;
         Thread.currentThread().interrupt();
         percentTimeElapsed.set(0);
-        discoveryCompletePropertyChange.firePropertyChange("scanCancelled", false, true);
+        discoveryCompletePropertyChange.firePropertyChange(PropertyChanges.SCAN_CANCELLED.toString(), false, true);
     }
 
     @Override

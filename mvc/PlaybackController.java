@@ -23,6 +23,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.util.converter.DoubleStringConverter;
 import util.DialogType;
+import util.PropertyChanges;
 import util.algorithms.Algorithm;
 
 import java.beans.PropertyChangeEvent;
@@ -149,11 +150,11 @@ public class PlaybackController implements Initializable, PropertyChangeListener
         System.out.println("Playback Controller got property change.");
         String property = e.getPropertyName();
         InputDisplay updatedInfo;
-        if (property.equals("update playback view")) {
+        if (property.equals(PropertyChanges.UPDATE_VIEW.toString())) {
             updatedInfo = (InputDisplay) e.getNewValue();
             inputDisplayPane.getChildren().add(updatedInfo.getDisplay());
         }
-        else if (property.equals("clear playback pane")) {
+        else if (property.equals(PropertyChanges.CLEAR_PANE.toString())) {
             inputDisplayPane.getChildren().clear();
         }
     }

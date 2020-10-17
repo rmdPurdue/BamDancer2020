@@ -2,6 +2,7 @@ package mvc;
 
 import com.OutgoingData;
 import com.incListener;
+import com.oracle.webservices.internal.api.message.PropertySet;
 import com.outSender;
 import cues.Cue;
 import cues.OutputMapping;
@@ -12,6 +13,7 @@ import devices.DeviceToCalibrate;
 import devices.RemoteDevice;
 import util.DeviceType;
 import util.ThreadListener;
+import util.PropertyChanges;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
@@ -220,13 +222,13 @@ public class Model implements ThreadListener {
 
     public void deviceScanFailed() {
         /* Device scan has not found any devices from DeviceDiscoveryQuery*/
-        modelPropertyChangeSupport.firePropertyChange("device scan failed", 0, 1);
+        modelPropertyChangeSupport.firePropertyChange( PropertyChanges.SCAN_FAILED.toString(), 0, 1);
     }
 
     public void deviceScanCompleted() {
         /* Network scan is finished and irrelevant of whether it was successful or not, we need to re
         * activate the scan button.*/
-        modelPropertyChangeSupport.firePropertyChange("scanFinished", 0, 1);
+        modelPropertyChangeSupport.firePropertyChange(PropertyChanges.SCAN_FINISHED.toString(), 0, 1);
     }
 
     DeviceList getSenderDevices() { return senderDevices; }
@@ -261,7 +263,7 @@ public class Model implements ThreadListener {
             Fire property change so that the FlowPane is reset from running the previous cue.
          */
 
-        modelPropertyChangeSupport.firePropertyChange("clear playback pane", 0, 1);
+        modelPropertyChangeSupport.firePropertyChange(PropertyChanges.CLEAR_PANE.toString(), 0, 1);
 
         /*
             Fire property changes for each output mapping so their respective InputDisplays
@@ -270,8 +272,7 @@ public class Model implements ThreadListener {
 
         for (OutputMapping mapping : cue.getOutputMappings()) {
             System.out.println("Sending property change for updating mapping"); //TODO RM
-            modelPropertyChangeSupport.firePropertyChange("update playback view", 0,
-                    mapping.getInputDisplay());
+            modelPropertyChangeSupport.firePropertyChange(PropertyChanges.UPDATE_VIEW.toString(), 0, mapping.getInputDisplay());
         }
         outgoingQueue.clear();
         resume();
@@ -378,7 +379,7 @@ public class Model implements ThreadListener {
                 System.out.println("Updated device (" +  senderDevices.getDevices().get(index).getMacAddress() + ") with new data.");
                 System.out.println(senderDevices.getDevices().get(index).getNumberOfInputs() + " inputs.");
             }
-            modelPropertyChangeSupport.firePropertyChange("updatedDeviceData", false, true);
+            modelPropertyChangeSupport.firePropertyChange(PropertyChanges.UPDATED_DEV_DATA.toString(), false, true);
         }
 
         if(message.matches("/calibrate")) {
@@ -404,7 +405,7 @@ public class Model implements ThreadListener {
                         senderDevices.getDevices().get(index).getAnalogInput((Integer) message.getArguments().get(1)).setMaxValue((int)message.getArguments().get(3));
                         break;
                 }
-                modelPropertyChangeSupport.firePropertyChange("updatedInputData", false, true);
+                modelPropertyChangeSupport.firePropertyChange(PropertyChanges.UPDATED_INPUT_DATA.toString(), false, true);
             }
         }
 
@@ -413,7 +414,7 @@ public class Model implements ThreadListener {
             for (RemoteDevice dev : senderDevices.getDevices()) {
                 if (dev.getMacAddress().equals(senderMACAddress)) {
                     dev.getAnalogInput((Integer) message.getArguments().get(1)).setMaxValue((Integer) message.getArguments().get(2));
-                    modelPropertyChangeSupport.firePropertyChange("inputCalibrated", false, true);
+                    modelPropertyChangeSupport.firePropertyChange(PropertyChanges.INPUT_CALIBRATED.toString(), false, true);
                 }
             }
         }
@@ -421,7 +422,7 @@ public class Model implements ThreadListener {
         if(message.matches("/saved")) {
             System.out.println("Got a saved confirmation.");
             if((boolean)message.getArguments().get(0)) {
-                modelPropertyChangeSupport.firePropertyChange("remoteDeviceSaved", false, true);
+                modelPropertyChangeSupport.firePropertyChange(PropertyChanges.REMOTE_DEV_SAVED.toString(), false, true);
             }
         }
     }
