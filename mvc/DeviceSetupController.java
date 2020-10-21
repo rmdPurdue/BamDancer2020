@@ -533,6 +533,15 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         });
     }
 
+    private void showErrorAlert(String error) {
+        /* Displays an error related to user-entered info (ie in Add Device etc...) */
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Data Entry Error");
+        alert.setHeaderText("Error");
+        alert.setContentText(error);
+        alert.showAndWait();
+    }
+
     private void showUpdatedInputDataAlert() {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Calibration Confirmation");
