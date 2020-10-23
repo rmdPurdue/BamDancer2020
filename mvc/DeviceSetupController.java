@@ -22,6 +22,8 @@ import javafx.util.Duration;
 import javafx.util.converter.IntegerStringConverter;
 import util.*;
 
+import javax.swing.*;
+import javax.swing.JSpinner.NumberEditor;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
@@ -32,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 import static util.DeviceType.MIXED;
 import static util.DeviceType.RECEIVER;
@@ -49,6 +52,7 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
     private DeviceList senderDeviceList = new DeviceList();
     private DeviceList receiverDeviceList = new DeviceList();
     private DeviceList devices = new DeviceList();
+    private String errMessage = "";
 
     @FXML private TableView<RemoteDevice> deviceTableView;
     @FXML private TableColumn<RemoteDevice, String> deviceNameColumn;
@@ -356,7 +360,25 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         //TODO need function to either somehow disable table or to clear it....
     }
 
+    private void errCheckField(String fieldName, String fieldVal, String regex, String expectedFormat) {
+        /* This function checks response length, and  formatting. All errors found will be added onto a
+           running list of errors for the user.
+         */
+
+        if (fieldVal.isEmpty()) {
+            this.errMessage.concat(ErrorMessages.BLANK_INVALID.getErrForField(fieldName));
+        }
+        if (fieldVal.length() >= 256) {
+            this.errMessage.concat(ErrorMessages.LENGTH_EXCEEDED.getErrForField(fieldName));
+        }
+        if (!regex.isEmpty() && Pattern.matches(regex, fieldVal)) {
+            this.errMessage.concat(ErrorMessages.BAD_FORMAT.getErrForField(fieldName)).concat("The expected format is " + expectedFormat);
+        }
+    }
+
     private void addDeviceDialog() {
+        /* NOTE that spinner values for port nums are hardcoded based on whichever port num is max in PortNumbers enum*/
+
         Dialog<RemoteDevice> deviceDialog = new Dialog<>();
         deviceDialog.setTitle("New Remote Device");
         deviceDialog.setHeaderText("Create a new remote device.");
@@ -373,15 +395,30 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         TextField deviceNameTextField = new TextField();
         TextField macAddressTextField = new TextField("FFFFFFFFFFFF");
         TextField deviceIPAddressTextField = new TextField("123.45.67.89");
-        TextField receivePortTextField = new TextField();
-        TextField sendIPAddressTextField = new TextField("123.45.67.89");
-        TextField sendPortTextField = new TextField();
-        TextField numberOfAnalogInputs = new TextField("1");
 
-        receivePortTextField.setDisable(true);
+        final Spinner<Integer> receivePortSpinner = new Spinner<Integer>();
+        SpinnerValueFactory<Integer> receivePortValFactory =
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(8003,8999, 8003);
+        receivePortSpinner.setValueFactory(receivePortValFactory);
+        receivePortSpinner.setEditable(true);
+
+        TextField sendIPAddressTextField = new TextField("123.45.67.89");
+
+        final Spinner<Integer> sendPortSpinner = new Spinner<Integer>();
+        SpinnerValueFactory<Integer> sendPortValFactory =
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(9002,9999,9002);
+        sendPortSpinner.setValueFactory(sendPortValFactory);
+        sendPortSpinner.setEditable(true);
+
+        final Spinner<Integer> analogInputsSpinner = new Spinner<Integer>();
+        SpinnerValueFactory<Integer> analogInputsValFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 6, 1);
+        analogInputsSpinner.setValueFactory(analogInputsValFactory);
+        analogInputsSpinner.setEditable(true);
+
+        receivePortSpinner.setDisable(true);
         sendIPAddressTextField.setDisable(false);
-        sendPortTextField.setDisable(false);
-        numberOfAnalogInputs.setDisable(false);
+        sendPortSpinner.setDisable(false);
+        analogInputsSpinner.setDisable(false);
 
         ComboBox<DeviceType> deviceTypeComboBox = new ComboBox<>();
         deviceTypeComboBox.getItems().setAll(DeviceType.values());
@@ -390,26 +427,26 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             switch(deviceTypeComboBox.getSelectionModel().getSelectedItem()) {
                 case SENDER:
                     Platform.runLater(() -> {
-                        receivePortTextField.setDisable(true);
+                        receivePortSpinner.setDisable(true);
                         sendIPAddressTextField.setDisable(false);
-                        sendPortTextField.setDisable(false);
-                        numberOfAnalogInputs.setDisable(false);
+                        sendPortSpinner.setDisable(false);
+                        analogInputsSpinner.setDisable(false);
                     });
                     break;
                 case RECEIVER:
                     Platform.runLater(() -> {
-                        receivePortTextField.setDisable(false);
+                        receivePortSpinner.setDisable(false);
                         sendIPAddressTextField.setDisable(true);
-                        sendPortTextField.setDisable(true);
-                        numberOfAnalogInputs.setDisable(true);
+                        sendPortSpinner.setDisable(true);
+                        analogInputsSpinner.setDisable(true);
                     });
                     break;
                 case MIXED:
                     Platform.runLater(() -> {
-                        receivePortTextField.setDisable(false);
+                        receivePortSpinner.setDisable(false);
                         sendIPAddressTextField.setDisable(false);
-                        sendPortTextField.setDisable(false);
-                        numberOfAnalogInputs.setDisable(false);
+                        sendPortSpinner.setDisable(false);
+                        analogInputsSpinner.setDisable(false);
                     });
                     break;
             }
@@ -429,13 +466,13 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         pane.add(deviceIPAddressLabel,0,3);
         pane.add(deviceIPAddressTextField,1,3);
         pane.add(receivePortLabel,0,4);
-        pane.add(receivePortTextField,1,4);
+        pane.add(receivePortSpinner,1,4);
         pane.add(sendIPAddress,0,5);
         pane.add(sendIPAddressTextField,1,5);
         pane.add(sendPortLabel,0,6);
-        pane.add(sendPortTextField,1,6);
+        pane.add(sendPortSpinner, 1, 6);
         pane.add(numberOfAnalogInputsLabel,0,7);
-        pane.add(numberOfAnalogInputs,1,7);
+        pane.add(analogInputsSpinner,1,7);
 
         deviceDialog.getDialogPane().setContent(pane);
 
@@ -444,32 +481,44 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         deviceDialog.setResultConverter(dialogButton -> {
             if (dialogButton == ButtonType.OK) {
                 RemoteDevice device = new RemoteDevice();
+
+                /* First validate and get values for ip addresses */ //TODO I think maybe one or two of these should be moved into the SENDER/RECIEVER/<MIXED section
+
                 InetAddress ip = null;
                 InetAddress sendIp = null;
                 try {
                     ip = InetAddress.getByName(deviceIPAddressTextField.getText());
-                    sendIp = InetAddress.getByName(sendIPAddressTextField.getText());
+                    errCheckField(deviceIPAddressLabel.getText(), deviceIPAddressTextField.getText(), "", ""); //TODO Regex
                 } catch (UnknownHostException e) {
                     e.printStackTrace();
+                    this.errMessage.concat(ErrorMessages.INVALID_IP.getErrForField(deviceIPAddressLabel.getText()));
                 }
+                try {
+                    sendIp = InetAddress.getByName(sendIPAddressTextField.getText());
+                    errCheckField(sendIPAddress.getText(), sendIPAddressTextField.getText(), "", ""); //TODO Regex
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
+                    this.errMessage.concat(ErrorMessages.INVALID_IP.getErrForField(sendIPAddress.getText()));
+                }
+                System.out.println(this.errMessage);
                 device.setDeviceName(deviceNameTextField.getText());
                 device.setIpAddress(ip);
                 device.setMacAddress(macAddressTextField.getText());
                 device.setDeviceType(deviceTypeComboBox.getSelectionModel().getSelectedItem());
                 switch (deviceTypeComboBox.getSelectionModel().getSelectedItem()) {
                     case SENDER:
-                        device.addAnalogInputs(Integer.parseInt(numberOfAnalogInputs.getText()));
+                        device.addAnalogInputs(analogInputsSpinner.getValue());
                         device.setAddressToSendTo(sendIp);
-                        device.setPortToSendTo(Integer.parseInt(sendPortTextField.getText()));
+                        device.setPortToSendTo(sendPortSpinner.getValue());
                         break;
                     case RECEIVER:
-                        device.setReceivePort(Integer.parseInt(receivePortTextField.getText()));
+                        device.setReceivePort(receivePortSpinner.getValue());
                         break;
                     case MIXED:
-                        device.addAnalogInputs(Integer.parseInt(numberOfAnalogInputs.getText()));
+                        device.addAnalogInputs(analogInputsSpinner.getValue());
                         device.setAddressToSendTo(sendIp);
-                        device.setPortToSendTo(Integer.parseInt(sendPortTextField.getText()));
-                        device.setReceivePort(Integer.parseInt(receivePortTextField.getText()));
+                        device.setPortToSendTo(sendPortSpinner.getValue());
+                        device.setReceivePort(receivePortSpinner.getValue());
                         break;
                     default:
                         break;
