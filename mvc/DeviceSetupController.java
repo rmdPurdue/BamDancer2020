@@ -366,13 +366,13 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
          */
 
         if (fieldVal.isEmpty()) {
-            this.errMessage.concat(ErrorMessages.BLANK_INVALID.getErrForField(fieldName));
+            this.errMessage = this.errMessage.concat(ErrorMessages.BLANK_INVALID.getErrForField(fieldName));
         }
         if (fieldVal.length() >= 256) {
-            this.errMessage.concat(ErrorMessages.LENGTH_EXCEEDED.getErrForField(fieldName));
+            this.errMessage = this.errMessage.concat(ErrorMessages.LENGTH_EXCEEDED.getErrForField(fieldName));
         }
-        if (!regex.isEmpty() && Pattern.matches(regex, fieldVal)) {
-            this.errMessage.concat(ErrorMessages.BAD_FORMAT.getErrForField(fieldName)).concat("The expected format is " + expectedFormat);
+        if (!regex.isEmpty() && !Pattern.matches(regex, fieldVal)) {
+            this.errMessage = this.errMessage.concat(ErrorMessages.BAD_FORMAT.getErrForField(fieldName)).concat("The expected format is " + expectedFormat);
         }
     }
 
@@ -478,6 +478,12 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
 
         deviceDialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
+       /*final Button btnOK  = (Button) deviceDialog.getDialogPane().lookupButton(ButtonType.OK);
+        btnOK.addEventFilter(ActionEvent.ACTION, event -> {
+            if (this.errMessage.isEmpty()) {
+                event.consume();
+            }
+        });*/ //TODO This was supposed to make it so that it wont close the window on OK until validation goes through, but it just kinda blocked everything...
         deviceDialog.setResultConverter(dialogButton -> {
             if (dialogButton == ButtonType.OK) {
                 RemoteDevice device = new RemoteDevice();
@@ -488,23 +494,30 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
                 InetAddress sendIp = null;
                 try {
                     ip = InetAddress.getByName(deviceIPAddressTextField.getText());
-                    errCheckField(deviceIPAddressLabel.getText(), deviceIPAddressTextField.getText(), "", ""); //TODO Regex
+                    errCheckField(deviceIPAddressLabel.getText(), deviceIPAddressTextField.getText(), "", "");
                 } catch (UnknownHostException e) {
                     e.printStackTrace();
-                    this.errMessage.concat(ErrorMessages.INVALID_IP.getErrForField(deviceIPAddressLabel.getText()));
+                    this.errMessage = this.errMessage.concat(ErrorMessages.INVALID_IP.getErrForField(deviceIPAddressLabel.getText()));
                 }
                 try {
                     sendIp = InetAddress.getByName(sendIPAddressTextField.getText());
-                    errCheckField(sendIPAddress.getText(), sendIPAddressTextField.getText(), "", ""); //TODO Regex
+                    errCheckField(sendIPAddress.getText(), sendIPAddressTextField.getText(), "", "");
                 } catch (UnknownHostException e) {
                     e.printStackTrace();
-                    this.errMessage.concat(ErrorMessages.INVALID_IP.getErrForField(sendIPAddress.getText()));
+                    this.errMessage = this.errMessage.concat(ErrorMessages.INVALID_IP.getErrForField(sendIPAddress.getText()));
                 }
-                System.out.println(this.errMessage);
                 device.setDeviceName(deviceNameTextField.getText());
+                errCheckField(deviceNameLabel.getText(), deviceNameTextField.getText(), "", "");
                 device.setIpAddress(ip);
                 device.setMacAddress(macAddressTextField.getText());
+                errCheckField(macAddressLabel.getText(), macAddressTextField.getText(), "^([0-9A-Fa-f]{2}){6}$", "FFFFFFFFFFFF");
                 device.setDeviceType(deviceTypeComboBox.getSelectionModel().getSelectedItem());
+
+                if (!this.errMessage.isEmpty()) {
+                    //TODO how do I allow them to still edit fields??/
+                    showErrorAlert(this.errMessage);
+                    this.errMessage = ""; //TODO see this wont work I dont think...
+                }
                 switch (deviceTypeComboBox.getSelectionModel().getSelectedItem()) {
                     case SENDER:
                         device.addAnalogInputs(analogInputsSpinner.getValue());

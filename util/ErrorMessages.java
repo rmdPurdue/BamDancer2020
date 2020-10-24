@@ -15,6 +15,6 @@ public enum ErrorMessages implements ErrorInterface {
 
     @Override
     public String getErrForField(String field) {
-        return "Error on " + field + ": " + this.error;
+        return "Error on " + field + this.error + '\n';
     }
 }
