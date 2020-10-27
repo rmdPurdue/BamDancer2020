@@ -360,20 +360,27 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         //TODO need function to either somehow disable table or to clear it....
     }
 
-    private void errCheckField(String fieldName, String fieldVal, String regex, String expectedFormat) {
+    private Boolean errCheckField(String fieldName, String fieldVal, String regex, String expectedFormat) {
         /* This function checks response length, and  formatting. All errors found will be added onto a
-           running list of errors for the user.
+           running list of errors for the user. Returns True if field is invalid in some way.
          */
+
+        Boolean failedCondition = false;
 
         if (fieldVal.isEmpty()) {
             this.errMessage = this.errMessage.concat(ErrorMessages.BLANK_INVALID.getErrForField(fieldName));
+            failedCondition = true;
         }
         if (fieldVal.length() >= 256) {
             this.errMessage = this.errMessage.concat(ErrorMessages.LENGTH_EXCEEDED.getErrForField(fieldName));
+            failedCondition = true;
         }
         if (!regex.isEmpty() && !Pattern.matches(regex, fieldVal)) {
-            this.errMessage = this.errMessage.concat(ErrorMessages.BAD_FORMAT.getErrForField(fieldName)).concat("The expected format is " + expectedFormat);
+            this.errMessage = this.errMessage.concat(ErrorMessages.BAD_FORMAT.getErrForField(fieldName)).concat("The expected format is " + expectedFormat + ".\n\n");
+            failedCondition = true;
         }
+
+        return failedCondition;
     }
 
     private void addDeviceDialog() {
@@ -478,46 +485,52 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
 
         deviceDialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
-       /*final Button btnOK  = (Button) deviceDialog.getDialogPane().lookupButton(ButtonType.OK);
+        final Button btnOK  = (Button) deviceDialog.getDialogPane().lookupButton(ButtonType.OK);
         btnOK.addEventFilter(ActionEvent.ACTION, event -> {
-            if (this.errMessage.isEmpty()) {
-                event.consume();
+            /* If any fields have errors, consume event. */
+
+            Boolean invalidFields = false;
+            if (errCheckField(deviceIPAddressLabel.getText(), deviceIPAddressTextField.getText(), "^\\d{3}.\\d{2}.\\d{2}.\\d{2}$", "123.45.67.89")) {
+                invalidFields = true;
             }
-        });*/ //TODO This was supposed to make it so that it wont close the window on OK until validation goes through, but it just kinda blocked everything...
+            if (errCheckField(sendIPAddress.getText(), sendIPAddressTextField.getText(), "^\\d{3}.\\d{2}.\\d{2}.\\d{2}$", "123.45.67.89")) {
+                invalidFields = true;
+            }
+            if (errCheckField(deviceNameLabel.getText(), deviceNameTextField.getText(), "", "")) {
+                invalidFields = true;
+            }
+            if (errCheckField(macAddressLabel.getText(), macAddressTextField.getText(), "^([0-9A-Fa-f]{2}){6}$", "FFFFFFFFFFFF")) {
+                invalidFields = true;
+            }
+
+            if (invalidFields) {
+                event.consume();
+                showErrorAlert(this.errMessage);
+                this.errMessage = "";
+            }
+        });
+
         deviceDialog.setResultConverter(dialogButton -> {
             if (dialogButton == ButtonType.OK) {
                 RemoteDevice device = new RemoteDevice();
-
-                /* First validate and get values for ip addresses */ //TODO I think maybe one or two of these should be moved into the SENDER/RECIEVER/<MIXED section
 
                 InetAddress ip = null;
                 InetAddress sendIp = null;
                 try {
                     ip = InetAddress.getByName(deviceIPAddressTextField.getText());
-                    errCheckField(deviceIPAddressLabel.getText(), deviceIPAddressTextField.getText(), "", "");
                 } catch (UnknownHostException e) {
                     e.printStackTrace();
-                    this.errMessage = this.errMessage.concat(ErrorMessages.INVALID_IP.getErrForField(deviceIPAddressLabel.getText()));
                 }
                 try {
                     sendIp = InetAddress.getByName(sendIPAddressTextField.getText());
-                    errCheckField(sendIPAddress.getText(), sendIPAddressTextField.getText(), "", "");
                 } catch (UnknownHostException e) {
                     e.printStackTrace();
-                    this.errMessage = this.errMessage.concat(ErrorMessages.INVALID_IP.getErrForField(sendIPAddress.getText()));
                 }
                 device.setDeviceName(deviceNameTextField.getText());
-                errCheckField(deviceNameLabel.getText(), deviceNameTextField.getText(), "", "");
                 device.setIpAddress(ip);
                 device.setMacAddress(macAddressTextField.getText());
-                errCheckField(macAddressLabel.getText(), macAddressTextField.getText(), "^([0-9A-Fa-f]{2}){6}$", "FFFFFFFFFFFF");
                 device.setDeviceType(deviceTypeComboBox.getSelectionModel().getSelectedItem());
 
-                if (!this.errMessage.isEmpty()) {
-                    //TODO how do I allow them to still edit fields??/
-                    showErrorAlert(this.errMessage);
-                    this.errMessage = ""; //TODO see this wont work I dont think...
-                }
                 switch (deviceTypeComboBox.getSelectionModel().getSelectedItem()) {
                     case SENDER:
                         device.addAnalogInputs(analogInputsSpinner.getValue());
