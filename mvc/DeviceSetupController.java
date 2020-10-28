@@ -349,15 +349,11 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         devices.setDevices(new ArrayList<>(senderDeviceList.getDevices()));
         devices.getDevices().addAll(new ArrayList<>(receiverDeviceList.getDevices()));
 
-        //Clears list of sender and reciever devices which are connected
+        //Clears list of sender and receiver devices which are connected
 
         deviceTableView.getItems().clear();
         deviceTableView.getItems().addAll(FXCollections.observableList(devices.getDevices()));
         deviceTableView.refresh();
-
-        //Ensures that user cannot interact with non-existant device information
-
-        //TODO need function to either somehow disable table or to clear it....
     }
 
     private Boolean errCheckField(String fieldName, String fieldVal, String regex, String expectedFormat) {
@@ -576,11 +572,6 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
 
     }
 
-    private void deviceSetupFieldError() {
-        /* Errors to display to the user in the event that they have provided incorrect information. */
-
-    }
-
     private void openCalibrationAlertDialog(AnalogInput input, RemoteDevice device, OSCCommand type) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Input Calibration");
@@ -622,7 +613,7 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         alert.setTitle("Calibration Confirmation");
         alert.setHeaderText("Calibration complete.");
         alert.setContentText("Warning: calibration settings will not be saved when the device is powered down unless " +
-                "the \"Save Configuration\" button is pressed.");
+                "the \"Update Firmware\" button is pressed.");
         alert.showAndWait();
     }
 
@@ -658,6 +649,11 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         scanFailedAlert.show();
     }
 
+    public void displaySavedDeviceAlert() {
+        Alert deviceSavedAlert = new Alert(Alert.AlertType.INFORMATION, "This device has been saved successfully!");
+        deviceSavedAlert.show();
+    }
+
     public ProgressBar getProgressBar() {
         return scanProgress;
     }
@@ -675,6 +671,7 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         if(property.equals(PropertyChanges.REMOTE_DEV_SAVED.toString())) {
             if((boolean)propertyChangeEvent.getNewValue()) {
                 updateDeviceTable();
+                Platform.runLater(this::displaySavedDeviceAlert);
             }
         }
         if(property.equals(PropertyChanges.SCAN_FAILED.toString())) {
