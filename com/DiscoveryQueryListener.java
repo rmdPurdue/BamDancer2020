@@ -121,7 +121,7 @@ public class DiscoveryQueryListener implements Runnable {
                     System.out.println("We've not seen this device.");
 
                     // Add this new device to our list
-                    remoteDevices.add(temp); //TODO also need to add to sender/receiver list
+                    remoteDevices.add(temp);
                     System.out.println("Device added. Device list size: " + remoteDevices.size());
                     System.out.println("This device MAC address: " + remoteDevices.get(remoteDevices.size()-1).getMacAddress());
 

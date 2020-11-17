@@ -291,7 +291,7 @@ public class Main extends Application implements PropertyChangeListener {
         if(property.equals(PropertyChanges.SAVE_DEVICE.toString())) sendSettingsToDevice((RemoteDevice) value);
 
         if(property.equals(PropertyChanges.CALIBRATE.toString())) {
-            calibrate((DeviceToCalibrate)value);
+            calibrate((DeviceToCalibrate) value);
         }
 
     }

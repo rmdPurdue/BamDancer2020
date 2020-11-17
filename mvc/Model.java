@@ -233,10 +233,6 @@ public class Model implements ThreadListener {
 
     DeviceList getSenderDevices() { return senderDevices; }
 
-    public void setReceiverDevices(ArrayList<RemoteDevice> devices) throws IOException {
-        receiverDevices.setDevices(devices);
-    }
-
     DeviceList getReceiverDevices() { return receiverDevices; }
 
     ArrayList<Cue> getCueList() {
@@ -409,7 +405,7 @@ public class Model implements ThreadListener {
             }
         }
 
-        if(message.matches("/calibrate/high")) {
+        /*if(message.matches("/calibrate/high")) { //TODO I think this is dead code
             String senderMACAddress = (String)message.getArguments().get(0);
             for (RemoteDevice dev : senderDevices.getDevices()) {
                 if (dev.getMacAddress().equals(senderMACAddress)) {
@@ -417,7 +413,7 @@ public class Model implements ThreadListener {
                     modelPropertyChangeSupport.firePropertyChange(PropertyChanges.INPUT_CALIBRATED.toString(), false, true);
                 }
             }
-        }
+        }*/
 
         if(message.matches("/saved")) {
             System.out.println("Got a saved confirmation.");

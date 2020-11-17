@@ -4,7 +4,11 @@ import devices.*;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.Property;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -211,6 +215,11 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             acceptTypeButton.setVisible(false);
             editTypeButton.setDisable(false);
             device.setDeviceType(deviceTypeComboBox.getSelectionModel().getSelectedItem());
+            updateDeviceTable();
+            inputSettingsTableView.getItems().clear();
+            inputSettingsTableView.setDisable(true);
+            //TODO need to force user to fill in required fields which a SENDER / RECEIVER has that it's original type did not!! Bring up a modal!!
+
         });
 
         editPortButton.setOnAction(e -> {
@@ -313,6 +322,8 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             return;
         }
         switch(device.getDeviceType()) {
+            case MIXED:
+                //MIXED will fall through to sender b/c they are effectively the same here...
             case SENDER:
                 deviceNameTextField.setText(device.getDeviceName());
                 hubIPAddressTextField.setText(device.getAddressToSendTo().toString());
@@ -320,20 +331,40 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
                 macAddress.setText(device.getMacAddress());
                 ipAddressTextField.setText(device.getIpAddress().toString());
                 deviceTypeComboBox.getSelectionModel().select(0);
+                rxPortTextField.setText("");
+
+                /* Disable buttons which edit fields that sender does not have */
+
+                editRxPortButton.setDisable(true);
+                editIPAddressButton.setDisable(false);
+                editPortButton.setDisable(false);
+
+                /* Update table information for sender dev inputs / calibration etc. */
+
                 inputSettingsTableView.getItems().clear();
                 inputSettingsTableView.getItems().addAll(device.getAnalogInputs());
                 inputSettingsTableView.refresh();
+                inputSettingsTableView.setDisable(false);
                 break;
             case RECEIVER:
                 deviceNameTextField.setText(device.getDeviceName());
                 macAddress.setText(device.getMacAddress());
                 ipAddressTextField.setText(device.getIpAddress().toString());
                 deviceTypeComboBox.getSelectionModel().select(1);
-                hubIPAddressTextField.setDisable(true);
-                portNumberTextField.setDisable(true);
+                hubIPAddressTextField.setText("");
+                rxPortTextField.setText(String.valueOf(device.getReceivePort()));
+                portNumberTextField.setText("");
+
+                /* Disable buttons which edit fields that sender does not have */
+
+                editIPAddressButton.setDisable(true);
+                editPortButton.setDisable(true);
+                editRxPortButton.setDisable(false);
+
+                /* Disable table b/c receivers don't have inputs / calibration */
+
+                inputSettingsTableView.getItems().clear();
                 inputSettingsTableView.setDisable(true);
-                break;
-            case MIXED:
                 break;
             default:
                 break;
@@ -577,16 +608,19 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         alert.setTitle("Input Calibration");
         alert.setHeaderText("Calibrate Sensor on \"" + device.getDeviceName() + "\"");
         String rangeText = "";
+        String calibrationNote = "";
         switch(type) {
             case MINIMUM:
                 rangeText = "lowest";
+                calibrationNote = "To calibrate low, simply hold the sensor without allowing it to bend.";
                 break;
             case MAXIMUM:
                 rangeText = "highest";
+                calibrationNote = "To calibrate high, bend the sensor to the maximum that you expect it to bend to";
                 break;
         }
         String alertText = "Set the sensor on input " + input.getInputNumber() + " to read its " + rangeText + " values. \n" +
-                "When calibration begins, hold the sensor in place for at least five seconds.\n\nPress OK to begin.";
+                "When calibration begins, hold the sensor in place for at least five seconds.\n" + calibrationNote + "\n\nPress OK to begin.";
         alert.setContentText(alertText);
 
         Optional<ButtonType> result = alert.showAndWait();
@@ -689,12 +723,6 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
                 setDevice(null);
             }
         }
-
-    }
-
-    private enum Err {
-        /* Enum for handling error messages related to formatting/validation of user-entered fields*/
-
 
     }
 }
