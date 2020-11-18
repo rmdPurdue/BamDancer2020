@@ -4,11 +4,6 @@ import devices.*;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.Property;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -26,8 +21,6 @@ import javafx.util.Duration;
 import javafx.util.converter.IntegerStringConverter;
 import util.*;
 
-import javax.swing.*;
-import javax.swing.JSpinner.NumberEditor;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
@@ -214,11 +207,19 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             deviceTypeComboBox.setDisable(true);
             acceptTypeButton.setVisible(false);
             editTypeButton.setDisable(false);
+            if (device.getDeviceType() == SENDER) {
+                senderDeviceList.removeDevice(device);
+                receiverDeviceList.addDevice(device);
+            }
+            else if (device.getDeviceType() == RECEIVER) {
+                receiverDeviceList.removeDevice(device);
+                senderDeviceList.addDevice(device);
+            }
             device.setDeviceType(deviceTypeComboBox.getSelectionModel().getSelectedItem());
+            changeDeviceTypeDialog(device);
             updateDeviceTable();
             inputSettingsTableView.getItems().clear();
             inputSettingsTableView.setDisable(true);
-            //TODO need to force user to fill in required fields which a SENDER / RECEIVER has that it's original type did not!! Bring up a modal!!
 
         });
 
@@ -408,6 +409,99 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         }
 
         return failedCondition;
+    }
+
+    private void changeDeviceTypeDialog(RemoteDevice device) {
+        Dialog<RemoteDevice> deviceDialog = new Dialog<>();
+        DeviceType deviceType = device.getDeviceType();
+        deviceDialog.setTitle("Change Type to " + deviceType.toString());
+        deviceDialog.setHeaderText("To change this device's type to " + deviceType.toString() + ", please enter the following information.");
+
+        GridPane pane = new GridPane();
+        pane.setPadding(new Insets(10,10,10,10));
+        pane.setVgap(5);
+        pane.setHgap(5);
+        deviceDialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        /* If device is a sender, gather sender's unique fields */
+
+        Label destPortLabel = new Label("Destination Port: ");
+        Label destIPLabel = new Label("Destination IP Address: ");
+        Label numberOfAnalogInputsLabel = new Label("# of Analog Inputs: ");
+        TextField destIPAddressTextField = new TextField("123.45.67.89");
+        final Spinner<Integer> destPortSpinner = new Spinner<Integer>();
+        SpinnerValueFactory<Integer> destPortValFactory =
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(8003,8999, 8003);
+        destPortSpinner.setValueFactory(destPortValFactory);
+        destPortSpinner.setEditable(true);
+        final Spinner<Integer> analogInputsSpinner = new Spinner<Integer>();
+        SpinnerValueFactory<Integer> analogInputsValFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 6, 1);
+        analogInputsSpinner.setValueFactory(analogInputsValFactory);
+        analogInputsSpinner.setEditable(true);
+
+        if (deviceType == SENDER) {
+            pane.add(destPortLabel, 0, 0);
+            pane.add(destPortSpinner, 1, 0);
+            pane.add(destIPLabel, 0, 1);
+            pane.add(destIPAddressTextField, 1, 1);
+            pane.add(numberOfAnalogInputsLabel, 0, 2);
+            pane.add(analogInputsSpinner, 1, 2);
+
+            /* Error check IP on OK button click */
+
+            final Button btnOK = (Button) deviceDialog.getDialogPane().lookupButton(ButtonType.OK);
+            btnOK.addEventFilter(ActionEvent.ACTION, event -> {
+                /* If IP has errors, consume event. */
+
+                if (errCheckField(destIPLabel.getText(), destIPAddressTextField.getText(), "^\\d{3}.\\d{2}.\\d{2}.\\d{2}$", "123.45.67.89")) {
+                    event.consume();
+                    showErrorAlert(this.errMessage);
+                    this.errMessage = "";
+                }
+            });
+        }
+
+        /* If device is receiver, gather the receiver's unique field */
+
+        Label devicePortLabel = new Label("Device OSC Port: ");
+        final Spinner<Integer> devicePortSpinner = new Spinner<Integer>();
+        SpinnerValueFactory<Integer> devicePortValFactory =
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(9002,9999,9002);
+        devicePortSpinner.setValueFactory(devicePortValFactory);
+        devicePortSpinner.setEditable(true);
+        if (deviceType == RECEIVER) {
+            pane.add(devicePortLabel, 0, 0);
+            pane.add(devicePortSpinner, 1, 0);
+        }
+
+        deviceDialog.getDialogPane().setContent(pane);
+
+        /* Handle correctly entered information */
+
+        deviceDialog.setResultConverter(dialogButton -> {
+            if (dialogButton == ButtonType.OK) {
+                if (deviceType == SENDER) {
+                    InetAddress destIp = null;
+                    try {
+                        destIp = InetAddress.getByName(destIPAddressTextField.getText());
+                    } catch (UnknownHostException e) {
+                        e.printStackTrace();
+                    }
+                    device.setAddressToSendTo(destIp);
+                    device.setPortToSendTo(destPortSpinner.getValue());
+                    device.addAnalogInputs(analogInputsSpinner.getValue());
+
+                } else if (deviceType == RECEIVER) {
+                    device.setReceivePort(devicePortSpinner.getValue());
+
+                    /* Re-setting analog inputs to not break code if user ever changes this dev back to sender*/
+
+                    device.clearAnalogInputs();
+                }
+            }
+            return null;
+        });
+        deviceDialog.show();
     }
 
     private void addDeviceDialog() {

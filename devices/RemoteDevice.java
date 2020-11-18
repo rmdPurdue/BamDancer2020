@@ -101,6 +101,10 @@ public class RemoteDevice {
         analogInputs.add(new AnalogInput(inputNumber, minValue, maxValue, filterWeight));
     }
 
+    public void clearAnalogInputs() {
+        analogInputs.clear();
+    }
+
     public AnalogInput getAnalogInput(int index) {
         int listIndex = 0;
         for (AnalogInput input : analogInputs) {
@@ -111,9 +115,7 @@ public class RemoteDevice {
         return analogInputs.get(listIndex);
     }
 
-    public void setDeviceType(DeviceType deviceType) {
-        this.deviceType = deviceType;
-    }
+    public void setDeviceType(DeviceType deviceType) { this.deviceType = deviceType; }
 
     public DeviceType getDeviceType() {
         return deviceType;

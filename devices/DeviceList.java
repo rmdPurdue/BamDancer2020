@@ -30,6 +30,14 @@ public class DeviceList {
         this.devices = devices;
     }
 
+    public void removeDevice(RemoteDevice deviceToRM) {
+        devices.remove(deviceToRM);
+    }
+
+    public void addDevice(RemoteDevice device) {
+        devices.add(device);
+    }
+
     public RemoteDevice getDeviceUsingMac(String macAddress) {
         for (RemoteDevice device : devices) {
             System.out.println("Search string: " + macAddress);
