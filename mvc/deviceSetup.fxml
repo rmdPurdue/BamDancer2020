@@ -4,6 +4,7 @@
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.Spinner?>
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
@@ -11,7 +12,7 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.text.Font?>
 
-<SplitPane dividerPositions="0.2867332382310984" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="650.0" prefWidth="1180.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="mvc.DeviceSetupController">
+<SplitPane dividerPositions="0.2867332382310984" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="650.0" prefWidth="1180.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="mvc.DeviceSetupController">
   <items>
     <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0">
          <children>
@@ -69,10 +70,6 @@
               </columns>
             </TableView>
             <TextField fx:id="deviceNameTextField" layoutX="243.0" layoutY="72.0" prefHeight="27.0" prefWidth="160.0">
-               <font>
-                  <Font size="14.0" />
-               </font></TextField>
-            <TextField fx:id="portNumberTextField" layoutX="243.0" layoutY="261.0" prefHeight="30.0" prefWidth="160.0">
                <font>
                   <Font size="14.0" />
                </font></TextField>
@@ -141,11 +138,8 @@
                   <Font size="14.0" />
                </font>
             </TextField>
-            <TextField fx:id="rxPortTextField" layoutX="243.0" layoutY="149.0" prefHeight="27.0" prefWidth="160.0">
-               <font>
-                  <Font size="14.0" />
-               </font>
-            </TextField>
+            <TextField fx:id="portNumberTextField" layoutX="242.0" layoutY="261.0" prefHeight="26.0" prefWidth="160.0" />
+            <Spinner fx:id="portNumberSpinner" layoutX="242.0" layoutY="261.0" prefHeight="26.0" prefWidth="160.0" />
             <Button fx:id="acceptRxIpButton" layoutX="474.0" layoutY="111.0" mnemonicParsing="false" text="Accept">
                <font>
                   <Font size="14.0" />
@@ -177,6 +171,8 @@
                   <Font size="14.0" />
                </font>
             </Button>
+            <TextField fx:id="rxPortTextField" layoutX="242.0" layoutY="151.0" prefHeight="26.0" prefWidth="160.0" />
+            <Spinner fx:id="rxPortSpinner" layoutX="242.0" layoutY="151.0" prefHeight="24.0" prefWidth="160.0" />
          </children></AnchorPane>
   </items>
 </SplitPane>

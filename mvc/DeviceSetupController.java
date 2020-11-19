@@ -57,11 +57,13 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
 
     @FXML private TextField deviceNameTextField;
     @FXML private TextField portNumberTextField;
+    @FXML private Spinner<Integer> portNumberSpinner = new Spinner<Integer>();
     @FXML private TextField hubIPAddressTextField;
     @FXML private TextField ipAddressTextField;
     @FXML private Label macAddress;
     @FXML private ComboBox<DeviceType> deviceTypeComboBox;
     @FXML private TextField rxPortTextField;
+    @FXML private Spinner<Integer> rxPortSpinner = new Spinner<Integer>();
 
     @FXML private Button editNameButton;
     @FXML private Button editRxIpButton;
@@ -125,6 +127,21 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         deviceNameTextField.setDisable(true);
         ipAddressTextField.setDisable(true);
         rxPortTextField.setDisable(true);
+
+        //Set up spinners and disable
+
+        SpinnerValueFactory<Integer> rxPortValFactory =
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(8003,8999, 8003);
+        rxPortSpinner.setValueFactory(rxPortValFactory);
+        rxPortSpinner.setEditable(true);
+        rxPortSpinner.setVisible(false);
+
+        SpinnerValueFactory<Integer> portNumberValFactory =
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(9003, 9999, 9003);
+        portNumberSpinner.setValueFactory(portNumberValFactory);
+        portNumberSpinner.setEditable(true);
+        portNumberSpinner.setVisible(false);
+
         deviceTypeComboBox.setItems(FXCollections.observableArrayList(SENDER,RECEIVER,MIXED));
         deviceTypeComboBox.setDisable(true);
         hubIPAddressTextField.setDisable(true);
@@ -185,16 +202,20 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         });
 
         editRxPortButton.setOnAction(e -> {
-            rxPortTextField.setDisable(false);
+            rxPortTextField.setVisible(false);
+            rxPortSpinner.setVisible(true);
             acceptRxPortButton.setVisible(true);
             editRxPortButton.setDisable(true);
         });
 
         acceptRxPortButton.setOnAction(e -> {
-            rxPortTextField.setDisable(true);
+            rxPortTextField.setVisible(true);
+            rxPortSpinner.setVisible(false);
             acceptRxPortButton.setVisible(false);
             editRxPortButton.setDisable(false);
-            device.setReceivePort(Integer.parseInt(rxPortTextField.getText()));
+            //device.setReceivePort(Integer.parseInt(rxPortTextField.getText()));
+            device.setReceivePort(rxPortSpinner.getValue());
+            rxPortTextField.setText(String.valueOf(rxPortSpinner.getValue()));
         });
 
         editTypeButton.setOnAction(e -> {
@@ -224,16 +245,20 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         });
 
         editPortButton.setOnAction(e -> {
-            portNumberTextField.setDisable(false);
+            portNumberTextField.setVisible(false);
+            portNumberSpinner.setVisible(true);
             acceptPortButton.setVisible(true);
             editPortButton.setDisable(true);
         });
 
         acceptPortButton.setOnAction(e -> {
-            portNumberTextField.setDisable(true);
+            portNumberTextField.setVisible(true);
+            portNumberSpinner.setVisible(false);
             acceptPortButton.setVisible(false);
             editPortButton.setDisable(false);
-            device.setPortToSendTo(Integer.parseInt(portNumberTextField.getText()));
+            //device.setPortToSendTo(Integer.parseInt(portNumberTextField.getText()));
+            device.setPortToSendTo(portNumberSpinner.getValue());
+            portNumberTextField.setText(String.valueOf(portNumberSpinner.getValue()));
         });
 
         saveButton.setOnAction(event -> controllerPropertyChangeSupport.firePropertyChange(PropertyChanges.SAVE_DEVICE.toString(), null, device));
@@ -329,6 +354,7 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
                 deviceNameTextField.setText(device.getDeviceName());
                 hubIPAddressTextField.setText(device.getAddressToSendTo().toString());
                 portNumberTextField.setText(String.valueOf(device.getPortToSendTo()));
+                //portNumberSpinner.getValueFactory().setValue(device.getPortToSendTo());
                 macAddress.setText(device.getMacAddress());
                 ipAddressTextField.setText(device.getIpAddress().toString());
                 deviceTypeComboBox.getSelectionModel().select(0);
@@ -354,6 +380,7 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
                 deviceTypeComboBox.getSelectionModel().select(1);
                 hubIPAddressTextField.setText("");
                 rxPortTextField.setText(String.valueOf(device.getReceivePort()));
+                //rxPortSpinner.getValueFactory().setValue(device.getReceivePort());
                 portNumberTextField.setText("");
 
                 /* Disable buttons which edit fields that sender does not have */
@@ -412,6 +439,8 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
     }
 
     private void changeDeviceTypeDialog(RemoteDevice device) {
+        /* Dialog which handles collection of necessary information when the user changes the device type */
+
         Dialog<RemoteDevice> deviceDialog = new Dialog<>();
         DeviceType deviceType = device.getDeviceType();
         deviceDialog.setTitle("Change Type to " + deviceType.toString());
