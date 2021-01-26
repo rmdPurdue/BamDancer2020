@@ -50,6 +50,7 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
     private DeviceList receiverDeviceList = new DeviceList();
     private DeviceList devices = new DeviceList();
     private String errMessage = "";
+    private String ipRegex = "(\\d{1,2}|(0|1)\\d{2}|2[0-4]\\d|25[0-5])\\.(\\d{1,2}|(0|1)\\d{2}|2[0-4]\\d|25[0-5])\\.(\\d{1,2}|(0|1)\\d{2}|2[0-4]\\d|25[0-5])\\.(\\d{1,2}|(0|1)\\d{2}|2[0-4]\\d|25[0-5])";
 
     @FXML private TableView<RemoteDevice> deviceTableView;
     @FXML private TableColumn<RemoteDevice, String> deviceNameColumn;
@@ -167,6 +168,16 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             device.setDeviceName(deviceNameTextField.getText());
         });
 
+        acceptNameButton.addEventFilter(ActionEvent.ACTION, event -> {
+            /* If Name has errors, consume event. */
+
+            if (errCheckField("Device Name: ", deviceNameTextField.getText(), "", "")) {
+                event.consume();
+                showErrorAlert(this.errMessage);
+                this.errMessage = "";
+            }
+        });
+
         editIPAddressButton.setOnAction(e -> {
             hubIPAddressTextField.setDisable(false);
             acceptIPAddressButton.setVisible(true);
@@ -177,10 +188,21 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             hubIPAddressTextField.setDisable(true);
             acceptIPAddressButton.setVisible(false);
             editIPAddressButton.setDisable(false);
+            //TODO err check
             try {
                 device.setAddressToSendTo(InetAddress.getByName(hubIPAddressTextField.getText().replaceAll("^/+","")));
             } catch (UnknownHostException e1) {
                 e1.printStackTrace();
+            }
+        });
+
+        acceptIPAddressButton.addEventFilter(ActionEvent.ACTION, event -> {
+            /* If IP has errors, consume event. */
+
+            if (errCheckField("Destination IP Address: ", hubIPAddressTextField.getText(), '/' + ipRegex, "/123.456.789.101")) {
+                event.consume();
+                showErrorAlert(this.errMessage);
+                this.errMessage = "";
             }
         });
 
@@ -194,10 +216,21 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             ipAddressTextField.setDisable(true);
             acceptRxIpButton.setVisible(false);
             editRxIpButton.setDisable(false);
+            //TODO err check
             try {
                 device.setIpAddress(InetAddress.getByName(ipAddressTextField.getText().replaceAll("^/+", "")));
             } catch (UnknownHostException e2) {
                 e2.printStackTrace();
+            }
+        });
+
+        acceptRxIpButton.addEventFilter(ActionEvent.ACTION, event -> {
+            /* If IP has errors, consume event. */
+
+            if (errCheckField("Device IP Address: ", ipAddressTextField.getText(), "/" + ipRegex, "123.456.789.101")) {
+                event.consume();
+                showErrorAlert(this.errMessage);
+                this.errMessage = "";
             }
         });
 
@@ -213,7 +246,6 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             rxPortSpinner.setVisible(false);
             acceptRxPortButton.setVisible(false);
             editRxPortButton.setDisable(false);
-            //device.setReceivePort(Integer.parseInt(rxPortTextField.getText()));
             device.setReceivePort(rxPortSpinner.getValue());
             rxPortTextField.setText(String.valueOf(rxPortSpinner.getValue()));
         });
@@ -256,7 +288,6 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             portNumberSpinner.setVisible(false);
             acceptPortButton.setVisible(false);
             editPortButton.setDisable(false);
-            //device.setPortToSendTo(Integer.parseInt(portNumberTextField.getText()));
             device.setPortToSendTo(portNumberSpinner.getValue());
             portNumberTextField.setText(String.valueOf(portNumberSpinner.getValue()));
         });
@@ -354,7 +385,6 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
                 deviceNameTextField.setText(device.getDeviceName());
                 hubIPAddressTextField.setText(device.getAddressToSendTo().toString());
                 portNumberTextField.setText(String.valueOf(device.getPortToSendTo()));
-                //portNumberSpinner.getValueFactory().setValue(device.getPortToSendTo());
                 macAddress.setText(device.getMacAddress());
                 ipAddressTextField.setText(device.getIpAddress().toString());
                 deviceTypeComboBox.getSelectionModel().select(0);
@@ -380,7 +410,6 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
                 deviceTypeComboBox.getSelectionModel().select(1);
                 hubIPAddressTextField.setText("");
                 rxPortTextField.setText(String.valueOf(device.getReceivePort()));
-                //rxPortSpinner.getValueFactory().setValue(device.getReceivePort());
                 portNumberTextField.setText("");
 
                 /* Disable buttons which edit fields that sender does not have */
@@ -482,7 +511,7 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             btnOK.addEventFilter(ActionEvent.ACTION, event -> {
                 /* If IP has errors, consume event. */
 
-                if (errCheckField(destIPLabel.getText(), destIPAddressTextField.getText(), "^\\d{3}.\\d{2}.\\d{2}.\\d{2}$", "123.45.67.89")) {
+                if (errCheckField(destIPLabel.getText(), destIPAddressTextField.getText(), ipRegex, "123.456.789.101")) {
                     event.consume();
                     showErrorAlert(this.errMessage);
                     this.errMessage = "";
@@ -640,16 +669,16 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             /* If any fields have errors, consume event. */
 
             Boolean invalidFields = false;
-            if (errCheckField(deviceIPAddressLabel.getText(), deviceIPAddressTextField.getText(), "^\\d{3}.\\d{2}.\\d{2}.\\d{2}$", "123.45.67.89")) {
+            if (errCheckField(deviceIPAddressLabel.getText(), deviceIPAddressTextField.getText(), ipRegex, "123.456.789.101")) {
                 invalidFields = true;
             }
-            if (errCheckField(sendIPAddress.getText(), sendIPAddressTextField.getText(), "^\\d{3}.\\d{2}.\\d{2}.\\d{2}$", "123.45.67.89")) {
+            if (errCheckField(sendIPAddress.getText(), sendIPAddressTextField.getText(), ipRegex, "123.456.789.101")) {
                 invalidFields = true;
             }
             if (errCheckField(deviceNameLabel.getText(), deviceNameTextField.getText(), "", "")) {
                 invalidFields = true;
             }
-            if (errCheckField(macAddressLabel.getText(), macAddressTextField.getText(), "^([0-9A-Fa-f]{2}){6}$", "FFFFFFFFFFFF")) {
+            if (errCheckField(macAddressLabel.getText(), macAddressTextField.getText(), "^([0-9A-F]{2}){6}$", "FFFFFFFFFFFF")) {
                 invalidFields = true;
             }
 
