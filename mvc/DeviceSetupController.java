@@ -270,9 +270,25 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             }
             device.setDeviceType(deviceTypeComboBox.getSelectionModel().getSelectedItem());
             changeDeviceTypeDialog(device);
+
+            //Update table of senders / recievers to reflect new info
+
             updateDeviceTable();
+
+            //Ensure that no old analog input info is visible
+
             inputSettingsTableView.getItems().clear();
             inputSettingsTableView.setDisable(true);
+
+            //Clearing editable fields and stating that no device is selected.
+
+            selectedDevice = null;
+            setDevice(selectedDevice);
+            deviceNameTextField.setText("");
+            ipAddressTextField.setText("");
+            rxPortTextField.setText("");  //Spinners are already set invisible at this point
+            portNumberTextField.setText("");
+            hubIPAddressTextField.setText("");
 
         });
 
@@ -851,6 +867,7 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             updateDeviceTable();
         }
         if(property.equals(PropertyChanges.UPDATED_INPUT_DATA.toString())) {
+            //This one has to do with device calibration
             setDevice(deviceTableView.getSelectionModel().getSelectedItem());
             Platform.runLater(this::showUpdatedInputDataAlert);
         }
@@ -871,7 +888,7 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
 
             //Ensure any selected devices which are no longer in the list are not accessible.
 
-            if (!senderDeviceList.isInDeviceList(selectedDevice)) {
+            if (selectedDevice != null && !senderDeviceList.isInDeviceList(selectedDevice)) {
                 setDevice(null);
             }
         }
