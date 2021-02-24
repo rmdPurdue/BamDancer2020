@@ -151,6 +151,9 @@ public class Main extends Application implements PropertyChangeListener {
                         model.goCue(new Cue(playbackController.cueListTableView.getSelectionModel().getSelectedItem()));
                     }
                     System.out.println("Sending Cue.");
+
+                    // Set up next cue in table as selected (if there is one)
+
                     if (playbackController.cueListTableView.getSelectionModel().getTableView().getItems().size() > playbackController.cueListTableView.getSelectionModel().getSelectedIndex() + 1) {  //TODO If there is another cue below the current, focus on it
                         playbackController.cueListTableView.getSelectionModel().select(playbackController.cueListTableView.getSelectionModel().getSelectedIndex() + 1);
                     } else {

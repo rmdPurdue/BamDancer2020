@@ -240,9 +240,8 @@ public class Model implements ThreadListener {
     }
 
     boolean cueExists(Double cueNumber) {
-        for (Object aCueList : cueList) {
-            Cue next = (Cue) aCueList;
-            if (next.getCueNumber().equals(cueNumber)) {
+        for (Cue cue : cueList) {
+            if (cue.getCueNumber().equals(cueNumber)) {
                 return true;
             }
         }

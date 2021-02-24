@@ -311,7 +311,7 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
         saveButton.setOnAction(event -> controllerPropertyChangeSupport.firePropertyChange(PropertyChanges.SAVE_DEVICE.toString(), null, device));
 
         inputNumberColumn.setCellValueFactory(new PropertyValueFactory<>("inputNumber"));
-        minValueColumn.setCellValueFactory(new PropertyValueFactory<>("minValue"));
+        minValueColumn.setCellValueFactory(new PropertyValueFactory<>("minValue")); //TODO min and max don't seem to be editable at all...Not even sure how they're actually initialized --> look at fxml
         maxValueColumn.setCellValueFactory(new PropertyValueFactory<>("maxValue"));
         filterWeightColumn.setCellValueFactory(new PropertyValueFactory<>("filterWeight"));
         filterWeightColumn.setCellFactory(TextFieldTableCell.forTableColumn(new IntegerStringConverter()));
@@ -784,7 +784,7 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
                 break;
             case MAXIMUM:
                 rangeText = "highest";
-                calibrationNote = "To calibrate high, bend the sensor to the maximum that you expect it to bend to";
+                calibrationNote = "To calibrate high, bend the sensor to the maximum that you expect it to bend to.";
                 break;
         }
         String alertText = "Set the sensor on input " + input.getInputNumber() + " to read its " + rangeText + " values. \n" +

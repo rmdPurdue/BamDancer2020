@@ -39,6 +39,7 @@ import static util.DialogType.DELETE_MAPPING;
 
 /**
  * @author Rich Dionne
+ * @author Hannah Eckert
  * @project BaMDancer
  * @package mvc
  * @date 7/4/2019
@@ -65,11 +66,11 @@ public class PlaybackController implements Initializable, PropertyChangeListener
     @FXML private TextField cueLabelTextField;
 
     private Model model;
-    private Cue cue = new Cue();
+    private Cue cue = new Cue();  //TODO what is the purpose of this? Does not appear in use
 
     public void setModel(Model model) {
         this.model = model;
-        setCueList(null);
+        setCueList();
         model.addPropertyChangeListener(this);
     }
 
@@ -78,12 +79,19 @@ public class PlaybackController implements Initializable, PropertyChangeListener
         cueListNumberColumn.setCellValueFactory(new PropertyValueFactory<>("cueNumber"));
         cueListNumberColumn.setCellFactory(TextFieldTableCell.forTableColumn(new DoubleStringConverter()));
 
-        cueListNumberColumn.setOnEditCommit(e -> {
+        cueListNumberColumn.setOnEditCommit(e -> { //TODO I believe this does not work & was an attempt at err checking
             if(!model.cueExists(e.getNewValue())) {
-                isCueNumberValid(String.valueOf(e.getNewValue()));  //TODO Return value not used
+
+                // If we have changed the cue number such that it is different from any in the cueList, do the following
+
+                isCueNumberValid(String.valueOf(e.getNewValue()));  //TODO Return value not used; this needs to be adapted to err check properly
                 e.getTableView().getItems().get(e.getTablePosition().getRow()).setCueNumber(e.getNewValue());
-                setCueList(null);
+                //TODO do we need to ensure that the model knows in some way that we have altered one of it's cues??
+                setCueList();
             } else {
+
+                //??
+
                 isCueNumberValid(String.valueOf(e.getNewValue()));
                 e.getTableView().getItems().get(e.getTablePosition().getRow()).setCueNumber(e.getOldValue());
                 // TODO: find out why this isn't opening the editable cell.
@@ -94,16 +102,17 @@ public class PlaybackController implements Initializable, PropertyChangeListener
         cueListLabelColumn.setCellValueFactory(new PropertyValueFactory<>("cueDescription"));
         cueListLabelColumn.setCellFactory(TextFieldTableCell.forTableColumn());
         cueListLabelColumn.setOnEditCommit(e -> e.getTableView().getItems().get(e.getTablePosition().getRow()).setCueDescription(e.getNewValue()));
+        //TODO cueListLabelColumn needs err checking onEditCommit!
 
-        cueListTableView.setRowFactory(tv -> {
+        /*cueListTableView.setRowFactory(tv -> {
             TableRow<Cue> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 1 && (!row.isEmpty())) {
-                    //TODO DEAD CODE????
+                    //
                 }
             });
             return row;
-        });
+        });*/ //TODO this appears to be dead code or a partially implemented feature
 
         cueListTableView.setPlaceholder(new Label("No cues saved."));
         cueListTableView.getSortOrder().add(cueListNumberColumn);
@@ -126,11 +135,25 @@ public class PlaybackController implements Initializable, PropertyChangeListener
         return false;
     }
 
-    private void setCueList(Cue cue) {
+
+    /**
+     * Retrieves ArrayList of cues from the model, sets the TODO (TableView)
+     * with them, and then sorts. Effectively refreshes the table.
+     */
+
+    private void setCueList() {
         cueListTableView.getItems().clear();
         cueListTableView.getItems().addAll(model.getCueList());
         cueListTableView.sort();
         cueListTableView.refresh();
+    }
+
+    /**
+     * Focuses (visually) on a cue passed in.
+     * @param cue
+     */
+
+    private void focusCue(Cue cue) {
         if(cue != null) {
             cueListTableView.getSelectionModel().select(model.getCueList().indexOf(cue));
             cueListTableView.getFocusModel().focus(model.getCueList().indexOf(cue));
