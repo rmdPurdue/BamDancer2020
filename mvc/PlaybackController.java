@@ -23,6 +23,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.util.converter.DoubleStringConverter;
 import util.DialogType;
+import util.ErrorMessages;
 import util.PropertyChanges;
 import util.algorithms.Algorithm;
 
@@ -33,6 +34,7 @@ import java.beans.PropertyChangeSupport;
 import java.net.URL;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.regex.Pattern;
 
 import static util.DialogType.DELETE_CUE;
 import static util.DialogType.DELETE_MAPPING;
@@ -57,15 +59,10 @@ public class PlaybackController implements Initializable, PropertyChangeListener
     @FXML public Button goButton;
     @FXML public Button stopButton;
 
-    @FXML private Label cueNumberDisplayLabel;
-    @FXML private Label cueDescriptionDisplayLabel;
-
     @FXML private FlowPane inputDisplayPane;
 
-    @FXML private TextField cueNumberTextField;
-    @FXML private TextField cueLabelTextField;
-
     private Model model;
+    private String errMessage = "";
     private Cue cue = new Cue();  //TODO what is the purpose of this? Does not appear in use
 
     public void setModel(Model model) {
@@ -79,65 +76,67 @@ public class PlaybackController implements Initializable, PropertyChangeListener
         cueListNumberColumn.setCellValueFactory(new PropertyValueFactory<>("cueNumber"));
         cueListNumberColumn.setCellFactory(TextFieldTableCell.forTableColumn(new DoubleStringConverter()));
 
-        cueListNumberColumn.setOnEditCommit(e -> { //TODO I believe this does not work & was an attempt at err checking
-            if(!model.cueExists(e.getNewValue())) {
+        //Error check new cue number if it is edited
 
-                // If we have changed the cue number such that it is different from any in the cueList, do the following
+        cueListNumberColumn.setOnEditCommit(e -> {
+                String newText = String.valueOf(e.getNewValue());
+                genericErrCheck("Cue Number", newText, "", "");
+                if (isCueNumberValid(newText) && errMessage.equals("")) {
+                    e.getTableView().getItems().get(e.getTablePosition().getRow()).setCueNumber(e.getNewValue());
+                }
+                else {
+                    //Do not update table because new value is invalid; show error message to user
 
-                isCueNumberValid(String.valueOf(e.getNewValue()));  //TODO Return value not used; this needs to be adapted to err check properly
-                e.getTableView().getItems().get(e.getTablePosition().getRow()).setCueNumber(e.getNewValue());
-                //TODO do we need to ensure that the model knows in some way that we have altered one of it's cues??
+                    e.getTableView().getItems().get(e.getTablePosition().getRow()).setCueNumber(e.getOldValue());
+                    showErrorAlert(this.errMessage);
+                    this.errMessage = "";
+                } //TODO if/else is untested & may not work yet???
+
+                //TODO do we need to ensure that the model knows in some way that we have altered one of it's cues?
                 setCueList();
-            } else {
-
-                //??
-
-                isCueNumberValid(String.valueOf(e.getNewValue()));
-                e.getTableView().getItems().get(e.getTablePosition().getRow()).setCueNumber(e.getOldValue());
-                // TODO: find out why this isn't opening the editable cell.
-                cueListTableView.edit(0, cueListNumberColumn);
-            }
         });
+
 
         cueListLabelColumn.setCellValueFactory(new PropertyValueFactory<>("cueDescription"));
         cueListLabelColumn.setCellFactory(TextFieldTableCell.forTableColumn());
         cueListLabelColumn.setOnEditCommit(e -> e.getTableView().getItems().get(e.getTablePosition().getRow()).setCueDescription(e.getNewValue()));
         //TODO cueListLabelColumn needs err checking onEditCommit!
 
-        /*cueListTableView.setRowFactory(tv -> {
-            TableRow<Cue> row = new TableRow<>();
-            row.setOnMouseClicked(event -> {
-                if (event.getClickCount() == 1 && (!row.isEmpty())) {
-                    //
-                }
-            });
-            return row;
-        });*/ //TODO this appears to be dead code or a partially implemented feature
-
         cueListTableView.setPlaceholder(new Label("No cues saved."));
         cueListTableView.getSortOrder().add(cueListNumberColumn);
     }
 
+    /**
+     * Error checks that the cue number is not already one existing in our cue list.
+     * @param newText
+     * @return
+     */
+
     private boolean isCueNumberValid(String newText) {
-        if(!(newText == null || newText.length() == 0)) {
-            Cue temp = new Cue(Double.parseDouble(newText), cueLabelTextField.getText());
-            if(model.getCueList().contains(temp)) {
-                //errorLabel.setText("Cue number already exists. Choose another number.");
-                //errorLabel.setVisible(true);
-                cueNumberTextField.setStyle("-fx-text-fill: red;");
-                newCueButton.setDisable(true);
+        if(!(newText == null || newText.length() == 0)) {  //Slightly redundant b/c we already did genericErrorCheck, but necessary here
+            System.out.println("Getting into isCueNumberValid"); //TODO RM
+            Double temp;
+            try {
+                temp = Double.parseDouble(newText);
+            } catch (NumberFormatException e) {
+                System.out.println("We caught the number exception"); //TODO RM
+                this.errMessage = this.errMessage.concat("This field will only accept numbers. Please enter a number.");
+                return false;
+            }
+            if(model.cueExists(temp)) {  //Note that it is impossible to get here with temp being null
+                //Error if cueExists already
+
+                this.errMessage = this.errMessage.concat("The cue number you selected is already in use; please choose a different number.");
+                return false;
             } else {
-                //errorLabel.setVisible(false);
-                cueNumberTextField.setStyle("-fx-text-fill: black;");
-                newCueButton.setDisable(false);
+                return true;
             }
         }
         return false;
     }
 
-
     /**
-     * Retrieves ArrayList of cues from the model, sets the TODO (TableView)
+     * Retrieves ArrayList of cues from the model, sets the TableView
      * with them, and then sorts. Effectively refreshes the table.
      */
 
@@ -161,8 +160,6 @@ public class PlaybackController implements Initializable, PropertyChangeListener
     }
 
     /**
-     * @author Hannah Eckert
-     *
      * Property change handler for adding an InputDisplay to the FlowPane for the
      * playback controller, and for clearing the FlowPane for the running of a new
      * cue.
@@ -180,5 +177,49 @@ public class PlaybackController implements Initializable, PropertyChangeListener
         else if (property.equals(PropertyChanges.CLEAR_PANE.toString())) {
             inputDisplayPane.getChildren().clear();
         }
+    }
+
+    /**
+     * Checks an edited field's compliance to formatting requirements as stated formally in
+     * ErrorMessages.
+     * @param fieldName -- Used to notify the user which field they should fix before the edit is accepted
+     * @param fieldVal
+     * @param regex -- An optional field only necessary if specific format is required
+     * @param expectedFormat -- An optional field used to indicate to the user how they should meet our regex expectations
+     * @return -- True if any error(s) present in the field
+     */
+
+    private Boolean genericErrCheck(String fieldName, String fieldVal, String regex, String expectedFormat) {
+
+        Boolean failedCondition = false;
+
+        if (fieldVal.isEmpty()) {
+            this.errMessage = this.errMessage.concat(ErrorMessages.BLANK_INVALID.getErrForField(fieldName));
+            failedCondition = true;
+        }
+        if (fieldVal.length() >= 256) {
+            this.errMessage = this.errMessage.concat(ErrorMessages.LENGTH_EXCEEDED.getErrForField(fieldName));
+            failedCondition = true;
+        }
+        if (!regex.isEmpty() && !Pattern.matches(regex, fieldVal)) {
+            this.errMessage = this.errMessage.concat(ErrorMessages.BAD_FORMAT.getErrForField(fieldName)).concat("The expected format is " + expectedFormat + ".\n\n");
+            failedCondition = true;
+        }
+
+        return failedCondition;
+    }
+
+    /**
+     * Displays an error message to the user indicating all errors which have been found in
+     * the input they provided for a field.
+     * @param error -- Error message as maintained by this class
+     */
+
+    private void showErrorAlert(String error) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Data Entry Error");
+        alert.setHeaderText("Error");
+        alert.setContentText(error);
+        alert.showAndWait();
     }
 }

@@ -188,7 +188,6 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             hubIPAddressTextField.setDisable(true);
             acceptIPAddressButton.setVisible(false);
             editIPAddressButton.setDisable(false);
-            //TODO err check
             try {
                 device.setAddressToSendTo(InetAddress.getByName(hubIPAddressTextField.getText().replaceAll("^/+","")));
             } catch (UnknownHostException e1) {
@@ -216,7 +215,6 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             ipAddressTextField.setDisable(true);
             acceptRxIpButton.setVisible(false);
             editRxIpButton.setDisable(false);
-            //TODO err check
             try {
                 device.setIpAddress(InetAddress.getByName(ipAddressTextField.getText().replaceAll("^/+", "")));
             } catch (UnknownHostException e2) {
