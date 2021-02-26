@@ -114,11 +114,25 @@ public class PlaybackController implements Initializable, PropertyChangeListener
                 setCueList();
         });
 
-
         cueListLabelColumn.setCellValueFactory(new PropertyValueFactory<>("cueDescription"));
         cueListLabelColumn.setCellFactory(TextFieldTableCell.forTableColumn());
-        cueListLabelColumn.setOnEditCommit(e -> e.getTableView().getItems().get(e.getTablePosition().getRow()).setCueDescription(e.getNewValue()));
-        //TODO cueListLabelColumn needs err checking onEditCommit!
+
+        //Error check new cue description if it is edited
+
+        cueListLabelColumn.setOnEditCommit(e -> {
+            if (errCheckField("Cue Description", e.getNewValue(),"", "")) {
+                //User has entered an improper value; show err message
+
+                showErrorAlert(this.errMessage);
+                this.errMessage = "";
+                e.getTableView().getItems().get(e.getTablePosition().getRow()).setCueDescription(e.getOldValue());
+            }
+            else {
+                e.getTableView().getItems().get(e.getTablePosition().getRow()).setCueDescription(e.getNewValue());
+                model.updateCueDescription(e.getTableView().getItems().get(e.getTablePosition().getRow()).getCueNumber(), e.getNewValue());
+            }
+            setCueList();
+        });
 
         cueListTableView.setPlaceholder(new Label("No cues saved."));
         cueListTableView.getSortOrder().add(cueListNumberColumn);
@@ -126,7 +140,7 @@ public class PlaybackController implements Initializable, PropertyChangeListener
 
     /**
      * Error checks that the cue number is not already one existing in our cue list.
-     * @param newText
+     * @param newText -- new cue number in string form
      * @return
      */
 
@@ -207,5 +221,38 @@ public class PlaybackController implements Initializable, PropertyChangeListener
         alert.setHeaderText("Error");
         alert.setContentText(error);
         alert.showAndWait();
+    }
+
+    /**
+     * Generic error checking which can be used for any field. Regex optional. We show all error messages in the
+     * same error popup where possible
+     * @param fieldName -- Field name to help user identify which field the error occurred on
+     * @param fieldVal
+     * @param regex -- Optional regex expression
+     * @param expectedFormat -- Required if you use regex; string to aid the user in knowing what their input should look like
+     * @return -- true if any error occurs
+     */
+
+    private Boolean errCheckField(String fieldName, String fieldVal, String regex, String expectedFormat) {
+        /* This function checks response length, and  formatting. All errors found will be added onto a
+           running list of errors for the user. Returns True if field is invalid in some way.
+         */
+
+        Boolean failedCondition = false;
+
+        if (fieldVal.isEmpty()) {
+            this.errMessage = this.errMessage.concat(ErrorMessages.BLANK_INVALID.getErrForField(fieldName));
+            failedCondition = true;
+        }
+        if (fieldVal.length() >= 256) {
+            this.errMessage = this.errMessage.concat(ErrorMessages.LENGTH_EXCEEDED.getErrForField(fieldName));
+            failedCondition = true;
+        }
+        if (!regex.isEmpty() && !Pattern.matches(regex, fieldVal)) {
+            this.errMessage = this.errMessage.concat(ErrorMessages.BAD_FORMAT.getErrForField(fieldName)).concat("The expected format is " + expectedFormat + ".\n\n");
+            failedCondition = true;
+        }
+
+        return failedCondition;
     }
 }
