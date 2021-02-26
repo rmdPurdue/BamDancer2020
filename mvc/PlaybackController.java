@@ -1,43 +1,24 @@
 package mvc;
 
-import com.OutgoingData;
-import com.sun.corba.se.impl.orbutil.ObjectUtility;
 import cues.Cue;
 import cues.InputDisplay;
-import cues.OutputMapping;
-import devices.AnalogInput;
-import devices.OutputAddress;
-import devices.RemoteDevice;
-import javafx.beans.property.Property;
-import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
+import javafx.scene.control.Alert.AlertType;
 import javafx.util.converter.DoubleStringConverter;
-import util.DialogType;
 import util.ErrorMessages;
 import util.PropertyChanges;
-import util.algorithms.Algorithm;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.beans.PropertyChangeSupport;
 
 import java.net.URL;
-import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
-
-import static util.DialogType.DELETE_CUE;
-import static util.DialogType.DELETE_MAPPING;
 
 /**
  * @author Rich Dionne
@@ -65,6 +46,44 @@ public class PlaybackController implements Initializable, PropertyChangeListener
     private String errMessage = "";
     private Cue cue = new Cue();  //TODO what is the purpose of this? Does not appear in use
 
+    /**
+     * CustomDoubleStringConverter class ensures that we can catch NumberFormatExceptions and notify
+     * the user of an error if the user tries to enter a non-number for a cue number.
+     * Code sourced from: https://stackoverflow.com/questions/56376182/javafx-exception-handling-in-an-editable-textfieldtablecell
+     */
+
+    public static class CustomDoubleStringConverter extends DoubleStringConverter {
+        private final DoubleStringConverter converter = new DoubleStringConverter();
+
+        @Override
+        public String toString(Double object) {
+            try {
+                return converter.toString(object);
+            } catch (NumberFormatException e) {
+                Alert alert = new Alert(AlertType.INFORMATION);
+                alert.setTitle("Data Entry Error");
+                alert.setHeaderText("Error");
+                alert.setContentText("This should never happen. But if it does, a NumberFormatException has occurred in CustomDoubleStringConverter's toString method.");
+                alert.showAndWait();
+            }
+            return null;
+        }
+
+        @Override
+        public Double fromString(String string) {
+            try {
+                return converter.fromString(string);
+            } catch (NumberFormatException e) {
+                Alert alert = new Alert(AlertType.INFORMATION);
+                alert.setTitle("Data Entry Error");
+                alert.setHeaderText("Error");
+                alert.setContentText("Please only enter numbers in this field. A cue number with any letters in it will not be accepted.");
+                alert.showAndWait();
+            }
+            return -1.0; //TODO ask Rich if there is anything better we could do, b/c obviously this isn't perfect.
+        }
+    }
+
     public void setModel(Model model) {
         this.model = model;
         setCueList();
@@ -74,15 +93,15 @@ public class PlaybackController implements Initializable, PropertyChangeListener
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         cueListNumberColumn.setCellValueFactory(new PropertyValueFactory<>("cueNumber"));
-        cueListNumberColumn.setCellFactory(TextFieldTableCell.forTableColumn(new DoubleStringConverter()));
+        cueListNumberColumn.setCellFactory(TextFieldTableCell.forTableColumn(new CustomDoubleStringConverter()));
 
         //Error check new cue number if it is edited
 
         cueListNumberColumn.setOnEditCommit(e -> {
                 String newText = String.valueOf(e.getNewValue());
-                genericErrCheck("Cue Number", newText, "", "");
                 if (isCueNumberValid(newText) && errMessage.equals("")) {
                     e.getTableView().getItems().get(e.getTablePosition().getRow()).setCueNumber(e.getNewValue());
+                    model.updateCueNumber(e.getOldValue(), e.getNewValue()); //Not checking return value b/c we already know this cue is in the cueList
                 }
                 else {
                     //Do not update table because new value is invalid; show error message to user
@@ -90,9 +109,8 @@ public class PlaybackController implements Initializable, PropertyChangeListener
                     e.getTableView().getItems().get(e.getTablePosition().getRow()).setCueNumber(e.getOldValue());
                     showErrorAlert(this.errMessage);
                     this.errMessage = "";
-                } //TODO if/else is untested & may not work yet???
+                }
 
-                //TODO do we need to ensure that the model knows in some way that we have altered one of it's cues?
                 setCueList();
         });
 
@@ -113,13 +131,11 @@ public class PlaybackController implements Initializable, PropertyChangeListener
      */
 
     private boolean isCueNumberValid(String newText) {
-        if(!(newText == null || newText.length() == 0)) {  //Slightly redundant b/c we already did genericErrorCheck, but necessary here
-            System.out.println("Getting into isCueNumberValid"); //TODO RM
+        if(!(newText == null || newText.length() == 0)) {
             Double temp;
             try {
                 temp = Double.parseDouble(newText);
             } catch (NumberFormatException e) {
-                System.out.println("We caught the number exception"); //TODO RM
                 this.errMessage = this.errMessage.concat("This field will only accept numbers. Please enter a number.");
                 return false;
             }
@@ -177,36 +193,6 @@ public class PlaybackController implements Initializable, PropertyChangeListener
         else if (property.equals(PropertyChanges.CLEAR_PANE.toString())) {
             inputDisplayPane.getChildren().clear();
         }
-    }
-
-    /**
-     * Checks an edited field's compliance to formatting requirements as stated formally in
-     * ErrorMessages.
-     * @param fieldName -- Used to notify the user which field they should fix before the edit is accepted
-     * @param fieldVal
-     * @param regex -- An optional field only necessary if specific format is required
-     * @param expectedFormat -- An optional field used to indicate to the user how they should meet our regex expectations
-     * @return -- True if any error(s) present in the field
-     */
-
-    private Boolean genericErrCheck(String fieldName, String fieldVal, String regex, String expectedFormat) {
-
-        Boolean failedCondition = false;
-
-        if (fieldVal.isEmpty()) {
-            this.errMessage = this.errMessage.concat(ErrorMessages.BLANK_INVALID.getErrForField(fieldName));
-            failedCondition = true;
-        }
-        if (fieldVal.length() >= 256) {
-            this.errMessage = this.errMessage.concat(ErrorMessages.LENGTH_EXCEEDED.getErrForField(fieldName));
-            failedCondition = true;
-        }
-        if (!regex.isEmpty() && !Pattern.matches(regex, fieldVal)) {
-            this.errMessage = this.errMessage.concat(ErrorMessages.BAD_FORMAT.getErrForField(fieldName)).concat("The expected format is " + expectedFormat + ".\n\n");
-            failedCondition = true;
-        }
-
-        return failedCondition;
     }
 
     /**

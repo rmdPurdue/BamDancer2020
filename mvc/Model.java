@@ -239,6 +239,30 @@ public class Model implements ThreadListener {
         return cueList;
     }
 
+    boolean updateCueNumber(Double oldNumber, Double newNumber) {
+        //Updates a cue which is already present in the cuelist
+
+        for (Cue cue : cueList) {
+            if (cue.getCueNumber().equals(oldNumber)) {
+                cue.setCueNumber(newNumber);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    boolean updateCueDescription(Double cueNumber, String newDescription) {
+        //Updates a cue which is already present in the cuelist
+
+        for (Cue cue : cueList) {
+            if (cue.getCueNumber().equals(cueNumber)) {
+                cue.setCueDescription(newDescription);
+                return true;
+            }
+        }
+        return false;
+    }
+
     boolean cueExists(Double cueNumber) {
         for (Cue cue : cueList) {
             if (cue.getCueNumber().equals(cueNumber)) {
