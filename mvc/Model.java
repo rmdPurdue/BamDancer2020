@@ -239,6 +239,14 @@ public class Model implements ThreadListener {
         return cueList;
     }
 
+    boolean addCue(Cue newCue) {
+        if (!cueList.contains(newCue)) { //TODO check whether this is actually necessary or not
+            cueList.add(newCue);
+            return true;
+        }
+        return false;
+    }
+
     boolean updateCueNumber(Double oldNumber, Double newNumber) {
         //Updates a cue which is already present in the cuelist
 

@@ -2,13 +2,16 @@ package mvc;
 
 import cues.Cue;
 import cues.InputDisplay;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.control.Alert.AlertType;
+import javafx.scene.layout.GridPane;
 import javafx.util.converter.DoubleStringConverter;
 import util.ErrorMessages;
 import util.PropertyChanges;
@@ -17,6 +20,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
 import java.net.URL;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 
@@ -136,6 +140,90 @@ public class PlaybackController implements Initializable, PropertyChangeListener
 
         cueListTableView.setPlaceholder(new Label("No cues saved."));
         cueListTableView.getSortOrder().add(cueListNumberColumn);
+
+        //Set up Add Cue Button
+
+        newCueButton.setOnAction(event -> addCueDialog()); //TODO check if necessary to disable any btns (I dont thinkso)
+
+        //TODO set up other buttons
+
+    }
+
+    /**
+     * Adds a new Cue with output mappings to the cueList in the model. Duplicate cues may not be added this way;
+     * (if the user attempts to add a cue with an existing cue number, they will be notified to change it).
+     */
+
+    private void addCueDialog() {
+
+        Dialog<Cue> cueDialog = new Dialog<>();
+        cueDialog.setTitle("New Cue");
+        cueDialog.setHeaderText("Create a new cue.");
+
+        Label cueNumberLabel = new Label("Cue Number: ");
+        Label cueDescriptionLabel = new Label("Cue Description: ");
+        //TODO figure out if you want to do output mapping stuff here or within a diff dialog (I think diff would be best)
+
+        TextField cueDescriptionTextField = new TextField();
+        TextField cueNumberTextField = new TextField(); //TODO gonna need to remember to turn this into double & check list
+
+        // Add all fields to a gridpane for display
+
+        GridPane pane = new GridPane();
+        pane.setPadding(new Insets(10,10,10,10));
+        pane.setVgap(5);
+        pane.setHgap(5);
+
+        pane.add(cueNumberLabel,0,0);
+        pane.add(cueNumberTextField,1,0);
+        pane.add(cueDescriptionLabel,0,1);
+        pane.add(cueDescriptionTextField,1,1);
+
+        cueDialog.getDialogPane().setContent(pane);
+
+        cueDialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        //Error check fields when OK clicked; force user to fix incorrect fields; if info good, show output mapping dialog
+
+        final Button btnOK  = (Button) cueDialog.getDialogPane().lookupButton(ButtonType.OK);
+        btnOK.addEventFilter(ActionEvent.ACTION, event -> {
+            /* If any fields have errors, consume event. */
+
+            if (!isCueNumberValid(cueNumberTextField.getText()) ||
+                    errCheckField("Cue Description", cueDescriptionTextField.getText(),"", "")) {
+                event.consume();
+                showErrorAlert(this.errMessage);
+                this.errMessage = "";
+            }
+        });
+
+        //Create new cue if cueDialog was closed with a successful OK
+
+        cueDialog.setResultConverter(dialogButton -> {
+            if (dialogButton == ButtonType.OK) {
+                Double cueNum;
+                try {
+                    cueNum = Double.parseDouble(cueNumberTextField.getText());
+                } catch (NumberFormatException e) {
+                    System.out.println("THIS SHOULD NEVER HAPPEN! See setResultConverter in cueDialog of PlaybackController");
+                    e.printStackTrace();
+                    return null;
+                }
+                Cue cue = new Cue(cueNum, cueDescriptionTextField.getText()); //TODO assuming no output mappings
+                return cue;
+            }
+            return null;
+        });
+
+        Optional<Cue> result = cueDialog.showAndWait();
+
+        //Use results from valid OK of dialog to create a new cue in the model and refresh our Playback Cue List
+
+        result.ifPresent(cue -> {
+            model.addCue(cue); //TODO this function has a boolean return val to say if was successful or not (if you need)
+            setCueList();
+        });
+
     }
 
     /**
@@ -150,13 +238,13 @@ public class PlaybackController implements Initializable, PropertyChangeListener
             try {
                 temp = Double.parseDouble(newText);
             } catch (NumberFormatException e) {
-                this.errMessage = this.errMessage.concat("This field will only accept numbers. Please enter a number.");
+                this.errMessage = this.errMessage.concat("Error on Cue Number: This field will only accept numbers. Please enter a number.");
                 return false;
             }
             if(model.cueExists(temp)) {  //Note that it is impossible to get here with temp being null
                 //Error if cueExists already
 
-                this.errMessage = this.errMessage.concat("The cue number you selected is already in use; please choose a different number.");
+                this.errMessage = this.errMessage.concat("Error on Cue Number: The cue number you selected is already in use; please choose a different number.");
                 return false;
             } else {
                 return true;
