@@ -12,6 +12,7 @@ import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.util.converter.DoubleStringConverter;
 import util.ErrorMessages;
 import util.PropertyChanges;
@@ -141,12 +142,113 @@ public class PlaybackController implements Initializable, PropertyChangeListener
         cueListTableView.setPlaceholder(new Label("No cues saved."));
         cueListTableView.getSortOrder().add(cueListNumberColumn);
 
-        //Set up Add Cue Button
+        //Set up Add/Delete/Duplicate Cue Buttons
 
         newCueButton.setOnAction(event -> addCueDialog()); //TODO check if necessary to disable any btns (I dont thinkso)
+        deleteCueButton.setOnAction(event -> deleteCueDialog());
+        copyCueButton.setOnAction(event -> duplicateCueDialog());
 
-        //TODO set up other buttons
+    }
 
+    /**
+     * Duplicates the currently selected cue, requiring the user to select a valid cue number to give to this
+     * duplicate. (No two cues may have the same cue number).
+     */
+
+    private void duplicateCueDialog() {
+        if (cueListTableView.getSelectionModel().getSelectedItem() != null) {
+            Dialog<Cue> dupCueDialog = new Dialog<>();
+            dupCueDialog.setTitle("Duplicate the Selected Cue");
+            dupCueDialog.setHeaderText("Please provide the cue number you wish the duplicate to have.");
+
+            Label dupCueNumberLabel = new Label("Cue Number: ");
+            TextField dupCueNumberTextField = new TextField(); //TODO gonna need to remember to turn this into double & check list
+
+            // Add all fields to a gridpane for display
+
+            GridPane pane = new GridPane();
+            pane.setPadding(new Insets(10, 10, 10, 10));
+            pane.setVgap(5);
+            pane.setHgap(5);
+
+            pane.add(dupCueNumberLabel, 0, 0);
+            pane.add(dupCueNumberTextField, 1, 0);
+
+            dupCueDialog.getDialogPane().setContent(pane);
+            dupCueDialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+            //Error check field when OK clicked; force user to fix field if incorrect
+
+            final Button btnOK = (Button) dupCueDialog.getDialogPane().lookupButton(ButtonType.OK);
+            btnOK.addEventFilter(ActionEvent.ACTION, event -> {
+                /* If any fields have errors, consume event. */
+
+                if (!isCueNumberValid(dupCueNumberTextField.getText())) {
+                    event.consume();
+                    showErrorAlert(this.errMessage);
+                    this.errMessage = "";
+                }
+            });
+
+            //Create new cue if dupCueDialog was closed with a successful OK
+
+            dupCueDialog.setResultConverter(dialogButton -> {
+                if (dialogButton == ButtonType.OK) {
+                    Double cueNum;
+                    try {
+                        cueNum = Double.parseDouble(dupCueNumberTextField.getText());
+                    } catch (NumberFormatException e) {
+                        System.out.println("THIS SHOULD NEVER HAPPEN! See setResultConverter in cueDialog of PlaybackController");
+                        e.printStackTrace();
+                        return null;
+                    }
+                    Cue cue = new Cue(cueNum, cueListTableView.getSelectionModel().getSelectedItem().getCueDescription()); //TODO assuming no output mappings
+                    return cue;
+                }
+                return null;
+            });
+
+            Optional<Cue> result = dupCueDialog.showAndWait();
+
+            //Use results from valid OK of dialog to create a new cue in the model and refresh our Playback Cue List
+
+            result.ifPresent(cue -> {
+                model.addCue(cue); //TODO this function has a boolean return val to say if was successful or not (if you need)
+                setCueList();
+            });
+        }
+        else {
+            Alert alert = new Alert(AlertType.INFORMATION,
+                    "If you would like to duplicate a cue from the list first select it, then press Duplicate.",
+                    ButtonType.OK);
+            alert.showAndWait();
+        }
+    }
+
+    /**
+     * Deletes the currently selected cue. Requires the user to state that they do intend this action before
+     * it will complete.
+     */
+
+    private void deleteCueDialog() {
+        if (cueListTableView.getSelectionModel().getSelectedItem() == null) {
+            Alert alert = new Alert(AlertType.INFORMATION,
+                    "If you would like to delete a cue from the list first select it, then press Delete.",
+                    ButtonType.OK);
+            alert.showAndWait();
+        }
+        else {
+            Alert alert = new Alert(AlertType.CONFIRMATION,
+                    "Are you sure that you would like to delete this cue? This action cannot be undone.",
+                    ButtonType.YES);
+            alert.showAndWait().ifPresent(response -> {
+                if (response == ButtonType.YES) {
+                    model.getCueList().remove(cueListTableView.getSelectionModel().getSelectedItem());
+                    setCueList(); //refresh table
+                    //TODO may have to do something potentially to handle the deletion of output mappings??
+                }
+            });
+        }
     }
 
     /**
@@ -223,7 +325,6 @@ public class PlaybackController implements Initializable, PropertyChangeListener
             model.addCue(cue); //TODO this function has a boolean return val to say if was successful or not (if you need)
             setCueList();
         });
-
     }
 
     /**
@@ -270,7 +371,7 @@ public class PlaybackController implements Initializable, PropertyChangeListener
      * @param cue
      */
 
-    private void focusCue(Cue cue) {
+    private void focusCue(Cue cue) { //TODO is this in use??
         if(cue != null) {
             cueListTableView.getSelectionModel().select(model.getCueList().indexOf(cue));
             cueListTableView.getFocusModel().focus(model.getCueList().indexOf(cue));
