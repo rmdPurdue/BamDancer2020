@@ -2,14 +2,12 @@ package com;
 
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import util.PropertyChanges;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+import java.net.*;
 
 import static util.PortNumbers.UDP_SEND_PORT;
 
@@ -46,7 +44,15 @@ public class DeviceDiscoveryQuery implements Runnable {
         discoveryComplete = true;
         Thread.currentThread().interrupt();
         percentTimeElapsed.set(0);
-        discoveryCompletePropertyChange.firePropertyChange("scanComplete", false, true);
+        discoveryCompletePropertyChange.firePropertyChange(PropertyChanges.SCAN_COMPLETE.toString(), false, true);
+        socket.disconnect();
+    }
+
+    public void cancelDiscovery() {
+        discoveryComplete = true;
+        Thread.currentThread().interrupt();
+        percentTimeElapsed.set(0);
+        discoveryCompletePropertyChange.firePropertyChange(PropertyChanges.SCAN_CANCELLED.toString(), false, true);
     }
 
     @Override
@@ -95,7 +101,8 @@ public class DeviceDiscoveryQuery implements Runnable {
             // Close our UDP socket
             socket.close();
 
-            // Wait 250 millis before doing it again
+            // Wait 250 millis before doing it againRedF1sh
+            
             try {
                 Thread.sleep(250);
             } catch (InterruptedException e) {
@@ -103,5 +110,4 @@ public class DeviceDiscoveryQuery implements Runnable {
             }
         }
     }
-
 }

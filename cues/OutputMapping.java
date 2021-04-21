@@ -15,11 +15,11 @@ public class OutputMapping {
     private int input;
     private OutputAddress outputAddress;
     private UUID id; //TODO is number randomly assigned when we create a device (is unique) identifies a device
-    private InputDisplay display; //TODO added by hannah
+    private InputDisplay display;
 
     OutputMapping() {
         id = UUID.randomUUID();
-        display = new InputDisplay(); //TODO should I change the default constructor for inputdisplay??
+        display = new InputDisplay();
     }
 
     OutputMapping(OutputMapping source) {

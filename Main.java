@@ -23,6 +23,8 @@ import osc.OSCPortIn;
 import util.CountdownTimer;
 import devices.DeviceToCalibrate;
 import devices.RemoteDevice;
+import util.PropertyChanges;
+
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
@@ -69,7 +71,7 @@ public class Main extends Application implements PropertyChangeListener {
            Establish background threads for application services
          */
 
-        executor = Executors.newFixedThreadPool(5);
+        executor = Executors.newFixedThreadPool(3);
         deviceDiscoveryQuery = new DeviceDiscoveryQuery(5);
         discoveryQueryListener = new DiscoveryQueryListener();
         countdownTimer = new CountdownTimer(5);
@@ -149,6 +151,9 @@ public class Main extends Application implements PropertyChangeListener {
                         model.goCue(new Cue(playbackController.cueListTableView.getSelectionModel().getSelectedItem()));
                     }
                     System.out.println("Sending Cue.");
+
+                    // Set up next cue in table as selected (if there is one)
+
                     if (playbackController.cueListTableView.getSelectionModel().getTableView().getItems().size() > playbackController.cueListTableView.getSelectionModel().getSelectedIndex() + 1) {  //TODO If there is another cue below the current, focus on it
                         playbackController.cueListTableView.getSelectionModel().select(playbackController.cueListTableView.getSelectionModel().getSelectedIndex() + 1);
                     } else {
@@ -196,8 +201,6 @@ public class Main extends Application implements PropertyChangeListener {
     }
 
     private void startNetworkDiscoveryScan() {
-        System.out.println("Got here.");
-
         // Start the discovery listener thread
         executor.submit(discoveryQueryListener);
 
@@ -206,22 +209,31 @@ public class Main extends Application implements PropertyChangeListener {
     }
 
     private void stopNetworkDiscoveryScan() {
+        //Specifically, this function cancels a network discovery scan.
+
         // Stop the discovery scan thread
-        deviceDiscoveryQuery.stopDiscovery();
+        deviceDiscoveryQuery.cancelDiscovery();
 
         // Stop the discovery listener thread
         discoveryQueryListener.stopDiscoveryListening();
     }
 
-    private void cleanUpAfterNetworkScan() throws IOException {
+    private void cleanUpAfterNetworkScan(Boolean scanCompleted) throws IOException {
 
-        System.out.println("Discovery Query timeout received.");
-
-        // Stop listener for discovery responses
-        discoveryQueryListener.stopDiscoveryListening();
+        //scanCompleted is false when a scan is cancelled prematurely
+        System.out.println("Discovery Query timeout received OR Cancel button pressed.");
 
         // Update model with found devices
         model.setSenderDevices(discoveryQueryListener.getDiscoveredDevices());
+
+        //If no devices found, display error to user
+        if (scanCompleted && discoveryQueryListener.getDiscoveredDevices().isEmpty()) {
+            /* Scan failed; warn user of common failure causes. */
+            model.deviceScanFailed();
+        }
+
+        //Re-activate Network Scan button
+        model.deviceScanCompleted();
 
         // refresh main display
         deviceSetupController.updateDeviceTable();
@@ -263,20 +275,26 @@ public class Main extends Application implements PropertyChangeListener {
         String property = propertyChangeEvent.getPropertyName();
         Object value = propertyChangeEvent.getNewValue();
 
-        if(property.equals("startScanning")) startNetworkDiscoveryScan();
+        if(property.equals(PropertyChanges.START_SCAN.toString())) startNetworkDiscoveryScan();
 
-        if(property.equals("stopScanning")) stopNetworkDiscoveryScan();
+        if(property.equals(PropertyChanges.STOP_SCAN.toString())) stopNetworkDiscoveryScan();
 
-        if(property.equals("scanComplete")) try {
-            cleanUpAfterNetworkScan();
+        if(property.equals(PropertyChanges.SCAN_COMPLETE.toString())) try {
+            cleanUpAfterNetworkScan(true);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        if(property.equals("saveDeviceSettings")) sendSettingsToDevice((RemoteDevice) value);
+        if (property.equals(PropertyChanges.SCAN_CANCELLED.toString())) try {
+            cleanUpAfterNetworkScan(false);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-        if(property.equals("calibrate")) {
-            calibrate((DeviceToCalibrate)value);
+        if(property.equals(PropertyChanges.SAVE_DEVICE.toString())) sendSettingsToDevice((RemoteDevice) value);
+
+        if(property.equals(PropertyChanges.CALIBRATE.toString())) {
+            calibrate((DeviceToCalibrate) value);
         }
 
     }
@@ -336,6 +354,7 @@ public class Main extends Application implements PropertyChangeListener {
         protected void succeeded() {
             stopMessageWrapper.setRunStatus("Model Stopped");
             stopMessageWrapper.setRunningProperty(false);
+            reset();
         }
 
         @Override

@@ -60,7 +60,6 @@ public class incListener implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("GETTING TO RUN INCLIST?"); //TODO RM
         try {
             this.receiver = new OSCPortIn(OSC_RECEIVE_PORT.getValue());
         } catch (Exception e) {

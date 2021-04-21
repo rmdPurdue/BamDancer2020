@@ -22,7 +22,7 @@ public class OutgoingData {
     private int portNumber;
     private String URL;
     private float data;
-    private int rawData; //TODO added by hannah!!
+    private int rawData;
 
     /**
      * Constructor for <code>OutgoingData</code> assigns parameters URL, alg_name, and rawData passed from
@@ -40,7 +40,7 @@ public class OutgoingData {
         this.ipAddress = ipAddress;
         this.portNumber = portNumber;
         this.URL = URL;
-        this.rawData = rawData;  //TODO added by hannah
+        this.rawData = rawData;
         switch(alg_name) {
              case PERCENT_LEVELS:
                 this.data = new PercentLevels().calculate(rawData);
@@ -118,7 +118,6 @@ public class OutgoingData {
                 this.data = new OneByteLevels().calculate(rawData);
                 break;
         }
-//        System.out.println(this.data);
     }
 
     public InetAddress getIpAddress () {
@@ -129,7 +128,7 @@ public class OutgoingData {
         return portNumber;
     }
 
-    public int getRawData() { return rawData; }  //TODO added by hannah
+    public int getRawData() { return rawData; }
 
     /**
      * @return String that is the URL the data will be broadcasted to

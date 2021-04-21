@@ -11,6 +11,15 @@ import java.util.*;
  */
 public class DeviceList {
 
+    public Boolean isInDeviceList(RemoteDevice deviceToCheck) {
+        for (RemoteDevice device : devices) {
+            if (device == deviceToCheck) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private ArrayList<RemoteDevice> devices = new ArrayList<>();
 
     public ObservableList<RemoteDevice> getDevices() {
@@ -19,6 +28,14 @@ public class DeviceList {
 
     public void setDevices(ArrayList<RemoteDevice> devices) {
         this.devices = devices;
+    }
+
+    public void removeDevice(RemoteDevice deviceToRM) {
+        devices.remove(deviceToRM);
+    }
+
+    public void addDevice(RemoteDevice device) {
+        devices.add(device);
     }
 
     public RemoteDevice getDeviceUsingMac(String macAddress) {

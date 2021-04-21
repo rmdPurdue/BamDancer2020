@@ -2,6 +2,7 @@ package mvc;
 
 import com.OutgoingData;
 import com.incListener;
+import com.oracle.webservices.internal.api.message.PropertySet;
 import com.outSender;
 import cues.Cue;
 import cues.OutputMapping;
@@ -12,6 +13,7 @@ import devices.DeviceToCalibrate;
 import devices.RemoteDevice;
 import util.DeviceType;
 import util.ThreadListener;
+import util.PropertyChanges;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
@@ -78,7 +80,7 @@ public class Model implements ThreadListener {
     }
 
     public void start() throws InterruptedException, UnknownHostException, SocketException {
-        //System.out.println("In Model's start method!");  //TODO RM
+
         // Set main thread status properties
         running = true;
         paused = false;
@@ -92,7 +94,6 @@ public class Model implements ThreadListener {
         outgoingSender.setDaemon(true);
 
         // Start message threads
-        System.out.println("Starting incoming & outgoing readers!"); //TODO RM
         incomingReader.start();
         outgoingSender.start();
 
@@ -159,7 +160,7 @@ public class Model implements ThreadListener {
     @Override
     public void incomingDataUpdated() { //TODO this is what gets called whenever we have a new OSC message
 
-        System.out.println("Got a message.");
+        System.out.println("In IncomingDataUpdated (Model).");
         // Create a new OSC Message
 
         OSCMessage message = new OSCMessage();
@@ -185,6 +186,7 @@ public class Model implements ThreadListener {
                     // Create an instance of OutgoingData based on the mapping information
                     // for destination IP, destination port, OSC address, algorithm, and data.
                     // Then, add the outgoing data to the outgoing message queue.
+                    //TODO for some reason the message gets /Testing instead of /Testingdevice so it gets it incorrect
                     if (finalMessage.getAddress().equals("/hub/" + mapping.getDeviceName())) {  //TODO if this osc message is intended for us to use (check if it is the correct device
                         this.data = (Integer) finalMessage.getArguments().get(mapping.getInput()); //TODO from the current OutputMapping, get the input number and retrieve the data corresponding to it (/hub/device/ # # # # # #) get the # correspondingto input number
                         OutgoingData out = new OutgoingData(mapping.getOutputAddress().getIPaddress(),
@@ -192,7 +194,7 @@ public class Model implements ThreadListener {
                                 mapping.getOutputAddress().getUrl(),
                                 mapping.getOutputAddress().getAlgorithm(),
                                 data);
-                        mapping.updateDisplay(out);
+                        mapping.updateDisplay(out);  //TODO for some strange reason, this is not occurring....
                         System.out.println("Updating mapping!!!");  //TODO RM
                         try {
                             this.outgoingQueue.put(out);
@@ -218,11 +220,18 @@ public class Model implements ThreadListener {
         updateSenderDeviceData();
     }
 
-    DeviceList getSenderDevices() { return senderDevices; }
-
-    public void setReceiverDevices(ArrayList<RemoteDevice> devices) throws IOException {
-        receiverDevices.setDevices(devices);
+    public void deviceScanFailed() {
+        /* Device scan has not found any devices from DeviceDiscoveryQuery*/
+        modelPropertyChangeSupport.firePropertyChange( PropertyChanges.SCAN_FAILED.toString(), 0, 1);
     }
+
+    public void deviceScanCompleted() {
+        /* Network scan is finished and irrelevant of whether it was successful or not, we need to re
+        * activate the scan button.*/
+        modelPropertyChangeSupport.firePropertyChange(PropertyChanges.SCAN_FINISHED.toString(), 0, 1);
+    }
+
+    DeviceList getSenderDevices() { return senderDevices; }
 
     DeviceList getReceiverDevices() { return receiverDevices; }
 
@@ -230,10 +239,41 @@ public class Model implements ThreadListener {
         return cueList;
     }
 
+    boolean addCue(Cue newCue) {
+        if (!cueList.contains(newCue)) { //TODO check whether this is actually necessary or not
+            cueList.add(newCue);
+            return true;
+        }
+        return false;
+    }
+
+    boolean updateCueNumber(Double oldNumber, Double newNumber) {
+        //Updates a cue which is already present in the cuelist
+
+        for (Cue cue : cueList) {
+            if (cue.getCueNumber().equals(oldNumber)) {
+                cue.setCueNumber(newNumber);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    boolean updateCueDescription(Double cueNumber, String newDescription) {
+        //Updates a cue which is already present in the cuelist
+
+        for (Cue cue : cueList) {
+            if (cue.getCueNumber().equals(cueNumber)) {
+                cue.setCueDescription(newDescription);
+                return true;
+            }
+        }
+        return false;
+    }
+
     boolean cueExists(Double cueNumber) {
-        for (Object aCueList : cueList) {
-            Cue next = (Cue) aCueList;
-            if (next.getCueNumber().equals(cueNumber)) {
+        for (Cue cue : cueList) {
+            if (cue.getCueNumber().equals(cueNumber)) {
                 return true;
             }
         }
@@ -250,7 +290,7 @@ public class Model implements ThreadListener {
             Fire property change so that the FlowPane is reset from running the previous cue.
          */
 
-        modelPropertyChangeSupport.firePropertyChange("clear playback pane", 0, 1);
+        modelPropertyChangeSupport.firePropertyChange(PropertyChanges.CLEAR_PANE.toString(), 0, 1);
 
         /*
             Fire property changes for each output mapping so their respective InputDisplays
@@ -259,8 +299,7 @@ public class Model implements ThreadListener {
 
         for (OutputMapping mapping : cue.getOutputMappings()) {
             System.out.println("Sending property change for updating mapping"); //TODO RM
-            modelPropertyChangeSupport.firePropertyChange("update playback view", 0,
-                    mapping.getInputDisplay());  //TODO note this changed so it sends an input display now...
+            modelPropertyChangeSupport.firePropertyChange(PropertyChanges.UPDATE_VIEW.toString(), 0, mapping.getInputDisplay());
         }
         outgoingQueue.clear();
         resume();
@@ -309,6 +348,8 @@ public class Model implements ThreadListener {
             OSC_Sender.sendMessage(device.getIpAddress(), OSC_SEND_PORT.getValue(), SETUP.toString(), args);
         }
     }
+
+
 
     public void parseIncomingOSCMessage(OSCMessage message) throws UnknownHostException {
         if(message.matches("/device_setup")) {
@@ -365,7 +406,7 @@ public class Model implements ThreadListener {
                 System.out.println("Updated device (" +  senderDevices.getDevices().get(index).getMacAddress() + ") with new data.");
                 System.out.println(senderDevices.getDevices().get(index).getNumberOfInputs() + " inputs.");
             }
-            modelPropertyChangeSupport.firePropertyChange("updatedDeviceData", false, true);
+            modelPropertyChangeSupport.firePropertyChange(PropertyChanges.UPDATED_DEV_DATA.toString(), false, true);
         }
 
         if(message.matches("/calibrate")) {
@@ -391,24 +432,24 @@ public class Model implements ThreadListener {
                         senderDevices.getDevices().get(index).getAnalogInput((Integer) message.getArguments().get(1)).setMaxValue((int)message.getArguments().get(3));
                         break;
                 }
-                modelPropertyChangeSupport.firePropertyChange("updatedInputData", false, true);
+                modelPropertyChangeSupport.firePropertyChange(PropertyChanges.UPDATED_INPUT_DATA.toString(), false, true);
             }
         }
 
-        if(message.matches("/calibrate/high")) {
+        /*if(message.matches("/calibrate/high")) { //TODO I think this is dead code
             String senderMACAddress = (String)message.getArguments().get(0);
             for (RemoteDevice dev : senderDevices.getDevices()) {
                 if (dev.getMacAddress().equals(senderMACAddress)) {
                     dev.getAnalogInput((Integer) message.getArguments().get(1)).setMaxValue((Integer) message.getArguments().get(2));
-                    modelPropertyChangeSupport.firePropertyChange("inputCalibrated", false, true);
+                    modelPropertyChangeSupport.firePropertyChange(PropertyChanges.INPUT_CALIBRATED.toString(), false, true);
                 }
             }
-        }
+        }*/
 
         if(message.matches("/saved")) {
             System.out.println("Got a saved confirmation.");
             if((boolean)message.getArguments().get(0)) {
-                modelPropertyChangeSupport.firePropertyChange("remoteDeviceSaved", false, true);
+                modelPropertyChangeSupport.firePropertyChange(PropertyChanges.REMOTE_DEV_SAVED.toString(), false, true);
             }
         }
     }

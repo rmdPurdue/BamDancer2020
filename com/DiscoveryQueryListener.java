@@ -1,12 +1,11 @@
 package com;
 
+import devices.AnalogInput;
 import devices.RemoteDevice;
+import util.DeviceType;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
+import java.net.*;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -18,6 +17,8 @@ public class DiscoveryQueryListener implements Runnable {
     private AtomicBoolean running = new AtomicBoolean(false);
     private DatagramSocket socket = null;
     private int receivePort;
+    private Boolean discoveryListeningComplete;
+    private int timeoutInMilliSeconds = 5000; //Hard coded; same as for DeviceDiscoveryQuery
 
     public DiscoveryQueryListener() {
         // Set the UDP listening port
@@ -30,7 +31,9 @@ public class DiscoveryQueryListener implements Runnable {
         running.set(false);
 
         // Stop this thread
+        discoveryListeningComplete = true;
         Thread.currentThread().interrupt();
+        socket.disconnect();
     }
 
     public ArrayList<RemoteDevice> getDiscoveredDevices() {
@@ -38,41 +41,39 @@ public class DiscoveryQueryListener implements Runnable {
     }
 
     public void run() {
-        System.out.println("RUNNING??"); //TODO RM
+
         running.set(true);
+        discoveryListeningComplete = false;
 
         // Open a receiver socket
         try {
-            socket = new DatagramSocket(receivePort); //TODO says cannot bind b/c address already in use.
+            socket = new DatagramSocket(receivePort);
             //FIrst time running this is successful
         } catch (SocketException e) {
             e.printStackTrace();
         }
 
         while(running.get()) {
-            System.out.println("GETTING IN WHILE LOOP");
+
             try {
 
                 // Create an empty byte array to put incoming messages into
                 byte[] buf = new byte[256];
-                System.out.println("Created buffer"); //TODO RM
+
                 // Create a new UDP datagram packet
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
-System.out.println("Created datagram packet"); //TODO RM
-                // When we receive new data in our receiver socket, put it in our packet
-                socket.receive(packet);  //TODO this must be doing weird stuff b/c nothing after this gets to happen...
-                //I debugged and it just hangs in debug mode too; I suppose that it is waiting for a packet and
-                //just never gets anything somehow??
+                socket.setSoTimeout(timeoutInMilliSeconds);  //Sets timer on this socket
+                socket.receive(packet);
 
                 System.out.println("Message received.");
 
                 // Get the IP address our received packet was sent from
                 InetAddress address = packet.getAddress();
-                System.out.println("IP Address of remote sender: " + address.toString());
+                //System.out.println("IP Address of remote sender: " + address.toString());
 
                 // Get the port our received packet was addressed to
                 int port = packet.getPort();
-                System.out.println("Port of remote sender: " + port);
+                //System.out.println("Port of remote sender: " + port);
 
                 // Get the bytes that comprise the message in our received packet
                 buf = packet.getData();
@@ -86,6 +87,7 @@ System.out.println("Created datagram packet"); //TODO RM
 
                 // If our data contains "::", it's likely a "real" message
                 // Responses from remote devices should be a string name followed by "::" and then a mac address.
+                //System.out.printf("Dat: %s", data);
                 if(data.contains("::")) {
                     // Split the data on "::"
                     String parts[] = data.split("::");
@@ -107,6 +109,10 @@ System.out.println("Created datagram packet"); //TODO RM
                 temp.setMacAddress(macAddress);
                 temp.setDeviceName(deviceName);
                 temp.setIpAddress(address);
+                temp.setDeviceType(DeviceType.SENDER);
+                temp.setAddressToSendTo(address);
+                AnalogInput analogInput = new AnalogInput();
+                temp.addAnalogInputs(6);
                 if(remoteDevices.contains(temp)) {
                     System.out.println("We know this device already.");
                     System.out.println("-----------------------------");
@@ -130,17 +136,19 @@ System.out.println("Created datagram packet"); //TODO RM
 
                     // Send our acknowledgement message
                     socket.send(packet);
-
-                    //System.out.println("-----------------------------");
-                    //System.out.println();
                 }
 
-            } catch (IOException e) { //Not having an exception (tried blanket exception and got nothing )
+            } catch (SocketTimeoutException ste) {
+                System.out.println("Discovery Listening timeout.");
+                stopDiscoveryListening();
+                socket.close();
+                return;
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
-System.out.println("Closing socket"); //TODO RM
+
         // Close UDP socket
-        socket.close(); //TODO Well this probs solves the binding issue; somehow this line never executes.
+        socket.close();
     }
 }
