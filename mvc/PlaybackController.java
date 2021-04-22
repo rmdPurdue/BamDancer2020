@@ -54,6 +54,7 @@ public class PlaybackController implements Initializable, PropertyChangeListener
 
     private Model model;
     private String errMessage = "";
+    private String oscUrlRegex = "^\\/[_A-Za-z0-9]*$";
     private Cue cue = new Cue();  //TODO what is the purpose of this? Does not appear in use
 
     /**
@@ -315,6 +316,19 @@ public class PlaybackController implements Initializable, PropertyChangeListener
 
             mappingDialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
+            //Error check fields when OK clicked; force user to fix incorrect fields
+
+            final Button btnOK  = (Button) mappingDialog.getDialogPane().lookupButton(ButtonType.OK);
+            btnOK.addEventFilter(ActionEvent.ACTION, event -> {
+                /* If any fields have errors, consume event. */
+
+                if (errCheckField(oscLabel.getText(), oscAddress.getText(),oscUrlRegex, "a string beginning with a / and containing only letters, numbers, or underscores")) {
+                    event.consume();
+                    showErrorAlert(this.errMessage);
+                    this.errMessage = "";
+                }
+            });
+
             mappingDialog.setResultConverter(dialogButton -> {
                 if (dialogButton == ButtonType.OK) {
                     //TODO need to error check the String field at least to make sure it doesnt exceed length expectations!!!
@@ -497,7 +511,7 @@ public class PlaybackController implements Initializable, PropertyChangeListener
 
     /**
      * Generic error checking which can be used for any field. Regex optional. We show all error messages in the
-     * same error popup where possible
+     * same error popup where possible //TODO note that this is the same function as is in DeviceSetupController!!! Duplicate code!
      * @param fieldName -- Field name to help user identify which field the error occurred on
      * @param fieldVal
      * @param regex -- Optional regex expression
