@@ -2,6 +2,10 @@ package mvc;
 
 import cues.Cue;
 import cues.InputDisplay;
+import cues.OutputMapping;
+import devices.AnalogInput;
+import devices.OutputAddress;
+import devices.RemoteDevice;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -12,10 +16,10 @@ import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.util.converter.DoubleStringConverter;
 import util.ErrorMessages;
 import util.PropertyChanges;
+import util.algorithms.Algorithm;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -41,6 +45,7 @@ public class PlaybackController implements Initializable, PropertyChangeListener
     @FXML private Button newCueButton;
     @FXML private Button copyCueButton;
     @FXML private Button deleteCueButton;
+    @FXML private Button addMappingButton;
 
     @FXML public Button goButton;
     @FXML public Button stopButton;
@@ -147,6 +152,7 @@ public class PlaybackController implements Initializable, PropertyChangeListener
         newCueButton.setOnAction(event -> addCueDialog()); //TODO check if necessary to disable any btns (I dont thinkso)
         deleteCueButton.setOnAction(event -> deleteCueDialog());
         copyCueButton.setOnAction(event -> duplicateCueDialog());
+        addMappingButton.setOnAction(event -> addMappingDialog());
 
     }
 
@@ -252,6 +258,83 @@ public class PlaybackController implements Initializable, PropertyChangeListener
     }
 
     /**
+     * Dialog for user to enter output mapping information for a cue they have created.
+     */
+
+    private void addMappingDialog() {
+        Cue cue = cueListTableView.getSelectionModel().getSelectedItem();
+        if (cue == null) {
+            Alert alert = new Alert(AlertType.INFORMATION,
+                    "If you would like to add an output mapping to a cue from the list first select it, then press Add Output Mapping.",
+                    ButtonType.OK);
+            alert.showAndWait();
+        }
+        else {
+            Dialog<OutputMapping> mappingDialog = new Dialog<>();
+            mappingDialog.setTitle("Add Output Mapping");
+            mappingDialog.setHeaderText("Add an output mapping.");
+
+            Label deviceToMapLabel = new Label("Device to Map: " + cue.getCueDescription());
+            Label deviceInputLabel = new Label("Input to Map:");
+            Label destinationDeviceLabel = new Label("Destination Device:");
+            Label oscLabel = new Label("Message URL Address:");
+            Label algorithmLabel = new Label("Data Algorithm to Use:");
+
+            TextField oscAddress = new TextField();
+
+            ComboBox<RemoteDevice> devicesToMap = new ComboBox<>(model.getSenderDevices().getDevices());
+
+            ComboBox<AnalogInput> deviceInputs = new ComboBox<>();
+
+            ComboBox<RemoteDevice> destinationDevices = new ComboBox<>(model.getReceiverDevices().getDevices());
+
+            ComboBox<String> algorithms = new ComboBox<>(Algorithm.getValues());
+
+            devicesToMap.getSelectionModel().selectFirst();
+            deviceInputs.setItems(devicesToMap.getSelectionModel().getSelectedItem().getAnalogInputs());
+            deviceInputs.getSelectionModel().selectFirst();
+            destinationDevices.getSelectionModel().selectFirst();
+            algorithms.getSelectionModel().selectFirst();
+
+            GridPane pane = new GridPane();
+            pane.setPadding(new Insets(10, 10, 10, 10));
+            pane.setVgap(5);
+            pane.setHgap(5);
+
+            pane.add(deviceToMapLabel, 0, 0);
+            pane.add(deviceInputLabel, 0, 1);
+            pane.add(deviceInputs, 1, 1);
+            pane.add(destinationDeviceLabel, 0, 2);
+            pane.add(destinationDevices, 1, 2);
+            pane.add(oscLabel, 0, 3);
+            pane.add(oscAddress, 1, 3);
+            pane.add(algorithmLabel, 0, 4);
+            pane.add(algorithms, 1, 4);
+
+            mappingDialog.getDialogPane().setContent(pane);
+
+            mappingDialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+            mappingDialog.setResultConverter(dialogButton -> {
+                if (dialogButton == ButtonType.OK) {
+                    //TODO need to error check the String field at least to make sure it doesnt exceed length expectations!!!
+                    return new OutputMapping(devicesToMap.getSelectionModel().getSelectedItem(),
+                            Integer.valueOf(deviceInputs.getSelectionModel().getSelectedItem().toString()),
+                            new OutputAddress(model.getReceiverDevices().getDeviceUsingMac(destinationDevices.getSelectionModel().getSelectedItem().getMacAddress()),
+                                    oscAddress.getText(),
+                                    Algorithm.get(algorithms.getSelectionModel().getSelectedItem())));
+                }
+                return null;
+            });
+
+            Optional<OutputMapping> result = mappingDialog.showAndWait();
+            result.ifPresent(outputMapping -> {
+                cue.addOutputMapping(outputMapping);
+            });
+        }
+    }
+
+    /**
      * Adds a new Cue with output mappings to the cueList in the model. Duplicate cues may not be added this way;
      * (if the user attempts to add a cue with an existing cue number, they will be notified to change it).
      */
@@ -264,10 +347,9 @@ public class PlaybackController implements Initializable, PropertyChangeListener
 
         Label cueNumberLabel = new Label("Cue Number: ");
         Label cueDescriptionLabel = new Label("Cue Description: ");
-        //TODO figure out if you want to do output mapping stuff here or within a diff dialog (I think diff would be best)
 
         TextField cueDescriptionTextField = new TextField();
-        TextField cueNumberTextField = new TextField(); //TODO gonna need to remember to turn this into double & check list
+        TextField cueNumberTextField = new TextField();
 
         // Add all fields to a gridpane for display
 
@@ -312,6 +394,7 @@ public class PlaybackController implements Initializable, PropertyChangeListener
                     return null;
                 }
                 Cue cue = new Cue(cueNum, cueDescriptionTextField.getText()); //TODO assuming no output mappings
+
                 return cue;
             }
             return null;
