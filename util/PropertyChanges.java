@@ -19,5 +19,6 @@ public enum PropertyChanges {
     //Enums related to PlaybackController actions
 
     CLEAR_PANE,
-    UPDATE_VIEW //TODO rename these when possible.
+    UPDATE_VIEW, //TODO rename these when possible.
+    UPDATED_CUE_LIST //This enum is recieved and used by both the CueListController and PlaybackController
 }

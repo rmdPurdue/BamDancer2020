@@ -250,7 +250,8 @@ public class PlaybackController implements Initializable, PropertyChangeListener
                     ButtonType.YES);
             alert.showAndWait().ifPresent(response -> {
                 if (response == ButtonType.YES) {
-                    model.getCueList().remove(cueListTableView.getSelectionModel().getSelectedItem());
+                    //model.getCueList().remove(cueListTableView.getSelectionModel().getSelectedItem());
+                    model.deleteCue(cueListTableView.getSelectionModel().getSelectedItem());
                     setCueList(); //refresh table
                     //TODO may have to do something potentially to handle the deletion of output mappings??
                 }
@@ -344,6 +345,8 @@ public class PlaybackController implements Initializable, PropertyChangeListener
             Optional<OutputMapping> result = mappingDialog.showAndWait();
             result.ifPresent(outputMapping -> {
                 cue.addOutputMapping(outputMapping);
+                //TODO This is a slight issue; since we do not require communication with the model to update our output mappings
+                //TODO when we update a mapping, there is no way to refresh our update mapping table within CueListControoler
             });
         }
     }
@@ -485,13 +488,15 @@ public class PlaybackController implements Initializable, PropertyChangeListener
     public void propertyChange(PropertyChangeEvent e) {
         System.out.println("Playback Controller got property change.");
         String property = e.getPropertyName();
-        InputDisplay updatedInfo;
         if (property.equals(PropertyChanges.UPDATE_VIEW.toString())) {
-            updatedInfo = (InputDisplay) e.getNewValue();
+            InputDisplay updatedInfo = (InputDisplay) e.getNewValue();
             inputDisplayPane.getChildren().add(updatedInfo.getDisplay());
         }
         else if (property.equals(PropertyChanges.CLEAR_PANE.toString())) {
             inputDisplayPane.getChildren().clear();
+        }
+        else if (property.equals(PropertyChanges.UPDATED_CUE_LIST.toString())) {
+            setCueList();
         }
     }
 

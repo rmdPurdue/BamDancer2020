@@ -242,6 +242,20 @@ public class Model implements ThreadListener {
     boolean addCue(Cue newCue) {
         if (!cueList.contains(newCue)) { //TODO check whether this is actually necessary or not
             cueList.add(newCue);
+
+            //Fire property change so CueListController and Playback are both aware of shared changes
+            modelPropertyChangeSupport.firePropertyChange(PropertyChanges.UPDATED_CUE_LIST.toString(), 0, 1);
+            return true;
+        }
+        return false;
+    }
+
+    boolean deleteCue(Cue toDelete) {
+        Boolean removeSuccessful = cueList.remove(toDelete);
+        if (removeSuccessful) {
+
+            //Fire property change so CueListController and Playback are both aware of shared changes
+            modelPropertyChangeSupport.firePropertyChange(PropertyChanges.UPDATED_CUE_LIST.toString(), 0, 1);
             return true;
         }
         return false;
