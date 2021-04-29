@@ -40,8 +40,10 @@ import static util.OSCCommand.MAXIMUM;
 import static util.OSCCommand.MINIMUM;
 
 /**
- * Created by pujamittal on 2/7/19.
+ * @author pujamittal on 2/7/19
+ * @author heckert
  */
+
 public class DeviceSetupController implements Initializable, PropertyChangeListener {
 
     private RemoteDevice device = new RemoteDevice();
@@ -49,8 +51,11 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
     private DeviceList senderDeviceList = new DeviceList();
     private DeviceList receiverDeviceList = new DeviceList();
     private DeviceList devices = new DeviceList();
+
+    //TODO the following fields are only used for error checking and should be compartmentalized into the class if we do a dialog class
     private String errMessage = "";
     private String ipRegex = "(\\d{1,2}|(0|1)\\d{2}|2[0-4]\\d|25[0-5])\\.(\\d{1,2}|(0|1)\\d{2}|2[0-4]\\d|25[0-5])\\.(\\d{1,2}|(0|1)\\d{2}|2[0-4]\\d|25[0-5])\\.(\\d{1,2}|(0|1)\\d{2}|2[0-4]\\d|25[0-5])";
+    private String macRegex = "^([0-9A-F]{2}){6}$";
 
     @FXML private TableView<RemoteDevice> deviceTableView;
     @FXML private TableColumn<RemoteDevice, String> deviceNameColumn;
@@ -109,8 +114,6 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
     }
 
     public void initialize(URL location, ResourceBundle resources) {
-        // TODO: We need to add ability to update receiver port numbers.
-        // TODO: We need to add the ability to manually add devices.
 
         beginScanButton.setOnAction(event -> {
             controllerPropertyChangeSupport.firePropertyChange(PropertyChanges.START_SCAN.toString(), true, false);
@@ -692,7 +695,7 @@ public class DeviceSetupController implements Initializable, PropertyChangeListe
             if (errCheckField(deviceNameLabel.getText(), deviceNameTextField.getText(), "", "")) {
                 invalidFields = true;
             }
-            if (errCheckField(macAddressLabel.getText(), macAddressTextField.getText(), "^([0-9A-F]{2}){6}$", "FFFFFFFFFFFF")) {
+            if (errCheckField(macAddressLabel.getText(), macAddressTextField.getText(), macRegex, "FFFFFFFFFFFF")) {
                 invalidFields = true;
             }
 

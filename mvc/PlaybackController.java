@@ -2,6 +2,10 @@ package mvc;
 
 import cues.Cue;
 import cues.InputDisplay;
+import cues.OutputMapping;
+import devices.AnalogInput;
+import devices.OutputAddress;
+import devices.RemoteDevice;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -12,10 +16,10 @@ import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.util.converter.DoubleStringConverter;
 import util.ErrorMessages;
 import util.PropertyChanges;
+import util.algorithms.Algorithm;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -41,6 +45,7 @@ public class PlaybackController implements Initializable, PropertyChangeListener
     @FXML private Button newCueButton;
     @FXML private Button copyCueButton;
     @FXML private Button deleteCueButton;
+    @FXML private Button addMappingButton;
 
     @FXML public Button goButton;
     @FXML public Button stopButton;
@@ -49,6 +54,7 @@ public class PlaybackController implements Initializable, PropertyChangeListener
 
     private Model model;
     private String errMessage = "";
+    private String oscUrlRegex = "^\\/[_A-Za-z0-9]*$";
     private Cue cue = new Cue();  //TODO what is the purpose of this? Does not appear in use
 
     /**
@@ -147,6 +153,7 @@ public class PlaybackController implements Initializable, PropertyChangeListener
         newCueButton.setOnAction(event -> addCueDialog()); //TODO check if necessary to disable any btns (I dont thinkso)
         deleteCueButton.setOnAction(event -> deleteCueDialog());
         copyCueButton.setOnAction(event -> duplicateCueDialog());
+        addMappingButton.setOnAction(event -> addMappingDialog());
 
     }
 
@@ -243,10 +250,103 @@ public class PlaybackController implements Initializable, PropertyChangeListener
                     ButtonType.YES);
             alert.showAndWait().ifPresent(response -> {
                 if (response == ButtonType.YES) {
-                    model.getCueList().remove(cueListTableView.getSelectionModel().getSelectedItem());
+                    //model.getCueList().remove(cueListTableView.getSelectionModel().getSelectedItem());
+                    model.deleteCue(cueListTableView.getSelectionModel().getSelectedItem());
                     setCueList(); //refresh table
                     //TODO may have to do something potentially to handle the deletion of output mappings??
                 }
+            });
+        }
+    }
+
+    /**
+     * Dialog for user to enter output mapping information for a cue they have created.
+     */
+
+    private void addMappingDialog() {
+        Cue cue = cueListTableView.getSelectionModel().getSelectedItem();
+        if (cue == null) {
+            Alert alert = new Alert(AlertType.INFORMATION,
+                    "If you would like to add an output mapping to a cue from the list first select it, then press Add Output Mapping.",
+                    ButtonType.OK);
+            alert.showAndWait();
+        }
+        else {
+            Dialog<OutputMapping> mappingDialog = new Dialog<>();
+            mappingDialog.setTitle("Add Output Mapping");
+            mappingDialog.setHeaderText("Add an output mapping.");
+
+            Label deviceToMapLabel = new Label("Device to Map: " + cue.getCueDescription());
+            Label deviceInputLabel = new Label("Input to Map:");
+            Label destinationDeviceLabel = new Label("Destination Device:");
+            Label oscLabel = new Label("Message URL Address:");
+            Label algorithmLabel = new Label("Data Algorithm to Use:");
+
+            TextField oscAddress = new TextField();
+
+            ComboBox<RemoteDevice> devicesToMap = new ComboBox<>(model.getSenderDevices().getDevices());
+
+            ComboBox<AnalogInput> deviceInputs = new ComboBox<>();
+
+            ComboBox<RemoteDevice> destinationDevices = new ComboBox<>(model.getReceiverDevices().getDevices());
+
+            ComboBox<String> algorithms = new ComboBox<>(Algorithm.getValues());
+
+            devicesToMap.getSelectionModel().selectFirst();
+            deviceInputs.setItems(devicesToMap.getSelectionModel().getSelectedItem().getAnalogInputs());
+            deviceInputs.getSelectionModel().selectFirst();
+            destinationDevices.getSelectionModel().selectFirst();
+            algorithms.getSelectionModel().selectFirst();
+
+            GridPane pane = new GridPane();
+            pane.setPadding(new Insets(10, 10, 10, 10));
+            pane.setVgap(5);
+            pane.setHgap(5);
+
+            pane.add(deviceToMapLabel, 0, 0);
+            pane.add(deviceInputLabel, 0, 1);
+            pane.add(deviceInputs, 1, 1);
+            pane.add(destinationDeviceLabel, 0, 2);
+            pane.add(destinationDevices, 1, 2);
+            pane.add(oscLabel, 0, 3);
+            pane.add(oscAddress, 1, 3);
+            pane.add(algorithmLabel, 0, 4);
+            pane.add(algorithms, 1, 4);
+
+            mappingDialog.getDialogPane().setContent(pane);
+
+            mappingDialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+            //Error check fields when OK clicked; force user to fix incorrect fields
+
+            final Button btnOK  = (Button) mappingDialog.getDialogPane().lookupButton(ButtonType.OK);
+            btnOK.addEventFilter(ActionEvent.ACTION, event -> {
+                /* If any fields have errors, consume event. */
+
+                if (errCheckField(oscLabel.getText(), oscAddress.getText(),oscUrlRegex, "a string beginning with a / and containing only letters, numbers, or underscores")) {
+                    event.consume();
+                    showErrorAlert(this.errMessage);
+                    this.errMessage = "";
+                }
+            });
+
+            mappingDialog.setResultConverter(dialogButton -> {
+                if (dialogButton == ButtonType.OK) {
+                    //TODO need to error check the String field at least to make sure it doesnt exceed length expectations!!!
+                    return new OutputMapping(devicesToMap.getSelectionModel().getSelectedItem(),
+                            Integer.valueOf(deviceInputs.getSelectionModel().getSelectedItem().toString()),
+                            new OutputAddress(model.getReceiverDevices().getDeviceUsingMac(destinationDevices.getSelectionModel().getSelectedItem().getMacAddress()),
+                                    oscAddress.getText(),
+                                    Algorithm.get(algorithms.getSelectionModel().getSelectedItem())));
+                }
+                return null;
+            });
+
+            Optional<OutputMapping> result = mappingDialog.showAndWait();
+            result.ifPresent(outputMapping -> {
+                cue.addOutputMapping(outputMapping);
+                //TODO This is a slight issue; since we do not require communication with the model to update our output mappings
+                //TODO when we update a mapping, there is no way to refresh our update mapping table within CueListControoler
             });
         }
     }
@@ -264,10 +364,9 @@ public class PlaybackController implements Initializable, PropertyChangeListener
 
         Label cueNumberLabel = new Label("Cue Number: ");
         Label cueDescriptionLabel = new Label("Cue Description: ");
-        //TODO figure out if you want to do output mapping stuff here or within a diff dialog (I think diff would be best)
 
         TextField cueDescriptionTextField = new TextField();
-        TextField cueNumberTextField = new TextField(); //TODO gonna need to remember to turn this into double & check list
+        TextField cueNumberTextField = new TextField();
 
         // Add all fields to a gridpane for display
 
@@ -312,6 +411,7 @@ public class PlaybackController implements Initializable, PropertyChangeListener
                     return null;
                 }
                 Cue cue = new Cue(cueNum, cueDescriptionTextField.getText()); //TODO assuming no output mappings
+
                 return cue;
             }
             return null;
@@ -388,13 +488,15 @@ public class PlaybackController implements Initializable, PropertyChangeListener
     public void propertyChange(PropertyChangeEvent e) {
         System.out.println("Playback Controller got property change.");
         String property = e.getPropertyName();
-        InputDisplay updatedInfo;
         if (property.equals(PropertyChanges.UPDATE_VIEW.toString())) {
-            updatedInfo = (InputDisplay) e.getNewValue();
+            InputDisplay updatedInfo = (InputDisplay) e.getNewValue();
             inputDisplayPane.getChildren().add(updatedInfo.getDisplay());
         }
         else if (property.equals(PropertyChanges.CLEAR_PANE.toString())) {
             inputDisplayPane.getChildren().clear();
+        }
+        else if (property.equals(PropertyChanges.UPDATED_CUE_LIST.toString())) {
+            setCueList();
         }
     }
 
@@ -414,7 +516,7 @@ public class PlaybackController implements Initializable, PropertyChangeListener
 
     /**
      * Generic error checking which can be used for any field. Regex optional. We show all error messages in the
-     * same error popup where possible
+     * same error popup where possible //TODO note that this is the same function as is in DeviceSetupController!!! Duplicate code!
      * @param fieldName -- Field name to help user identify which field the error occurred on
      * @param fieldVal
      * @param regex -- Optional regex expression

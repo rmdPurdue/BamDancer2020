@@ -61,14 +61,19 @@
                   <Font name="System Bold" size="12.0" />
                </font>
             </Button>
-            <Button fx:id="goButton" layoutX="631.0" layoutY="39.0" mnemonicParsing="false" prefHeight="113.0" prefWidth="197.0" text="GO">
+            <Button fx:id="goButton" layoutX="673.0" layoutY="39.0" mnemonicParsing="false" prefHeight="113.0" prefWidth="197.0" text="GO">
                <font>
                   <Font name="System Bold" size="60.0" />
                </font>
             </Button>
-            <Button fx:id="stopButton" layoutX="847.0" layoutY="39.0" mnemonicParsing="false" prefHeight="128.0" prefWidth="236.0" text="STOP">
+            <Button fx:id="stopButton" layoutX="893.0" layoutY="39.0" mnemonicParsing="false" prefHeight="128.0" prefWidth="236.0" text="STOP">
                <font>
                   <Font name="System Bold" size="60.0" />
+               </font>
+            </Button>
+            <Button fx:id="addMappingButton" layoutX="469.0" layoutY="76.0" mnemonicParsing="false" prefHeight="30.0" prefWidth="162.0" text="ADD OUTPUT MAPPING" wrapText="true">
+               <font>
+                  <Font name="System Bold" size="12.0" />
                </font>
             </Button>
          </children></AnchorPane>

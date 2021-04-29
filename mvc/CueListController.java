@@ -1,6 +1,7 @@
 package mvc;
 
 import cues.Cue;
+import cues.InputDisplay;
 import cues.OutputMapping;
 import devices.AnalogInput;
 import devices.OutputAddress;
@@ -19,8 +20,11 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 import javafx.util.converter.DoubleStringConverter;
 import util.DialogType;
+import util.PropertyChanges;
 import util.algorithms.Algorithm;
 
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.net.URL;
 import java.util.*;
 
@@ -33,7 +37,7 @@ import static util.DialogType.DELETE_MAPPING;
  * @package mvc
  * @date 7/4/2019
  */
-public class CueListController implements Initializable {
+public class CueListController implements Initializable, PropertyChangeListener {
 
     @FXML private TableView<Cue> cueListTableView;
     @FXML private TableColumn<Cue, Double> cueListNumberColumn;
@@ -65,6 +69,7 @@ public class CueListController implements Initializable {
 
     public void setModel(Model model) {
         this.model = model;
+        model.addPropertyChangeListener(this);
         setCueList(null);
     }
 
@@ -289,7 +294,8 @@ public class CueListController implements Initializable {
             if (result.get() == javafx.scene.control.ButtonType.OK) {
                 switch (type) {
                     case DELETE_CUE:
-                        model.getCueList().remove(cueListTableView.getSelectionModel().getSelectedItem());
+                        //model.getCueList().remove(cueListTableView.getSelectionModel().getSelectedItem());
+                        model.deleteCue(cueListTableView.getSelectionModel().getSelectedItem());
                         setCueList(null);
                         setCue(null);
                         break;
@@ -386,5 +392,18 @@ public class CueListController implements Initializable {
             updateMappingTable();
             enableMappingButtons(true);
         });
+    }
+
+    /**
+     * Property change handler for CueListController reactions to data alteration within PlaybackController
+     */
+
+    @Override
+    public void propertyChange(PropertyChangeEvent e) {
+        String property = e.getPropertyName();
+        if (property.equals(PropertyChanges.UPDATED_CUE_LIST.toString())) {
+            setCueList(null);
+            updateMappingTable();
+        }
     }
 }
